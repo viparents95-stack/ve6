@@ -1,0 +1,2222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>95 Workspace</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+* { box-sizing: border-box; margin:0; padding:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body { background:#000; min-height:100vh; overflow:hidden; }
+
+/* ===================== AUTH ===================== */
+.auth-wrap {
+  height:100vh; width:100%; display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(160deg,#cdb9a8 0%,#b9a99c 35%,#9ea6a8 70%,#8a9295 100%);
+}
+.auth-card {
+  width:340px; padding:48px 28px 32px; border-radius:34px;
+  background: rgba(20,20,20,0.28); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border:1px solid rgba(255,255,255,0.18); box-shadow: 0 20px 60px rgba(0,0,0,0.35); color:#fff;
+}
+.auth-title { font-size:26px; font-weight:800; line-height:1.2; margin-bottom:30px; letter-spacing:-0.5px; }
+.field { border-bottom:1px solid rgba(255,255,255,0.35); padding-bottom:8px; margin-bottom:22px; }
+.field input { width:100%; background:transparent; border:none; outline:none; color:#fff; font-size:15px; padding:6px 0; }
+.field input::placeholder { color: rgba(255,255,255,0.65); }
+.hint { font-size:11.5px; color:rgba(255,255,255,0.55); margin-top:-14px; margin-bottom:18px; }
+.btn-primary { width:100%; padding:15px; border-radius:30px; border:none; background:#15151a; color:#fff; font-weight:700; font-size:15px; cursor:pointer; margin-bottom:14px; transition: transform .15s; }
+.btn-primary:active { transform: scale(0.97); }
+.auth-error { background:rgba(255,80,80,0.18); border:1px solid rgba(255,120,120,0.4); color:#ffd5d5; font-size:12.5px; padding:9px 12px; border-radius:12px; margin-bottom:16px; display:none; }
+.auth-switch { text-align:center; margin-top:18px; font-size:13px; color:rgba(255,255,255,0.75); }
+.auth-switch a { color:#fff; font-weight:700; text-decoration:underline; cursor:pointer; }
+
+/* ===================== APP ===================== */
+.app-container { display:none; width:100%; height:100vh; flex-direction:column; background:#ffffff; }
+.top-header {
+  background:#E60023; height:75px; display:flex; justify-content:space-between; align-items:center;
+  padding:0 20px 0 24px; border-bottom-left-radius:55px 85px;
+  position:sticky; top:0; z-index:50; flex-shrink:0;
+}
+.ws-switcher { display:flex; align-items:center; gap:8px; cursor:pointer; position:relative; }
+.app-title { color:#ffffff; font-size:24px; font-weight:900; letter-spacing:-1px; font-style:bold; }
+.app-title span { color:#ffae00; font-style:normal; font-size:14px; margin-left:2px; }
+.ws-caret { color:#ffffff; font-size:14px; }
+.ws-menu {
+  position:absolute; top:60px; left:0; background:#ffffff; border-radius:16px; min-width:220px;
+  box-shadow:0 20px 50px rgba(0,0,0,0.4); padding:10px; display:none; z-index:100;
+}
+.ws-menu.open { display:block; }
+.ws-menu-item { padding:10px 12px; border-radius:10px; color:#e2e8f0; font-size:14px; font-weight:600; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
+.ws-menu-item:hover { background:rgba(255,255,255,0.08); }
+.ws-menu-item.current { color:#000000; }
+.ws-menu-divider { height:1px; background:rgba(255,255,255,0.1); margin:8px 4px; }
+.ws-menu-create { padding:10px 12px; font-size:13px; color:#94a3b8; cursor:pointer; }
+.ws-menu-create:hover { color:#fff; }
+.avatar-btn { width:40px; height:40px; border-radius:30px; overflow:hidden; background:#ffffff; border:2px solid rgba(255,255,255,0.15); cursor:pointer; flex-shrink:0; }
+.avatar-btn img { width:100%; height:100%; object-fit:cover; display:block; }
+
+.main-content { flex:1; display:flex; height:calc(100vh - 75px); overflow:hidden; }
+.viewport-panel { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+
+/* views */
+.view-section { display:none; flex-direction:column; height:100%; overflow:hidden; }
+.view-section.active { display:flex; }
+.view-header { padding:16px 20px 12px; background:#ffffff; border-bottom:px solid #000000; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; }
+.view-title { font-size:19px; font-weight:800; color:#000000; letter-spacing:-0.5px; }
+.view-scroll { flex:1; overflow-y:auto; }
+
+/* search bar */
+.search-bar-wrap { padding:10px 20px 4px; flex-shrink:0; }
+.search-bar { width:100%; border:1.5px solid #000000; border-radius:20px; padding:9px 16px; font-size:13.5px; outline:none; color:#0f172a; background:#FFF5E0; }
+.search-bar:focus { border-color:#E60023; background:#ffffff; }
+.search-results { background:#fff; border:1px solid #f1f5f9; border-radius:16px; margin:4px 20px 0; box-shadow:0 8px 24px rgba(0,0,0,0.08); display:none; overflow:hidden; }
+.search-results.open { display:block; }
+.search-result-item { display:flex; align-items:center; gap:10px; padding:10px 14px; cursor:pointer; }
+.search-result-item:hover { background:#f8f8fb; }
+.sr-avatar { width:34px; height:34px; border-radius:10px; overflow:hidden; background:#e2e8f0; flex-shrink:0; }
+.sr-avatar img { width:100%; height:100%; object-fit:cover; }
+.sr-name { font-weight:700; font-size:13.5px; color:#0f172a; }
+.sr-uname { font-size:11.5px; color:#94a3b8; }
+
+/* list rows */
+.list-scroll { flex:1; overflow-y:auto; padding:8px 12px 12px; }
+.list-row { display:flex; align-items:center; gap:12px; padding:11px 8px; border-radius:14px; cursor:pointer; }
+.list-row:hover { background:#ffffff; }
+.list-avatar { width:42px; height:42px; border-radius:30px; background:#ffffff; overflow:hidden; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.list-avatar img { width:100%; height:100%; object-fit:cover; }
+.list-meta { flex:1; min-width:0; }
+.list-name { font-weight:700; font-size:14px; color:#000000; }
+.list-preview { font-size:12px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.add-btn { background:#000000; color:#fff; border:none; padding:7px 14px; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+
+/* chat thread */
+.thread-wrap { display:none; flex-direction:column; height:100%; overflow:hidden; }
+.thread-wrap.open { display:flex; }
+.thread-header { padding:14px 20px; border-bottom:1px solid #ffffff; display:flex; align-items:center; gap:10px; flex-shrink:0; background:#fff; }
+.thread-back { background:none; border:none; font-size:18px; cursor:pointer; color:#0f172a; padding:0 4px; }
+.thread-title { font-weight:800; font-size:15px; color:#000000; }
+.thread-members-btn { margin-left:auto; font-size:11.5px; color:#000000; font-weight:700; cursor:pointer; background:none; border:1px solid #a855f7; border-radius:14px; padding:4px 10px; }
+.thread-scroll { flex:1; overflow-y:auto; padding:14px 20px; display:flex; flex-direction:column; gap:6px; }
+
+/* ---- MESSAGES: all left, timestamp top-right, name bottom-left ---- */
+.msg-outer { display:flex; flex-direction:column; align-items:flex-start; max-width:78%; position:relative; }
+.msg-bubble {
+  background:#ffffff; color:#000000; padding:9px 13px 22px; border-radius:16px 16px 16px 4px;
+  font-size:14px; line-height:auto; position:relative; word-break:break-word;
+}
+.msg-time {
+  position:absolute; top:7px; right:10px;
+  font-size:10px; color:#000000; font-weight:500; white-space:nowrap;
+}
+.msg-sender-name {
+  font-size:11px; font-weight:700; color:#000000; margin-top:4px; padding-left:4px;
+}
+
+.composer { display:flex; gap:10px; padding:12px 20px; border-top:1px solid #f1f5f9; flex-shrink:0; background:#fff; position:relative; }
+.composer input { flex:1; border:1.5px solid #e2e8f0; border-radius:24px; padding:10px 18px; font-size:14px; outline:none; }
+.composer input:focus { border-color:#FF94B2; }
+.composer button { background:#15151a; color:#fff; border:none; width:42px; height:42px; border-radius:50%; font-size:16px; cursor:pointer; flex-shrink:0; }
+.composer-locked { padding:10px 20px 14px; text-align:center; font-size:12px; color:#94a3b8; flex-shrink:0; }
+
+/* right nav */
+.right-nav-dock { width:130px; padding:0 20px 48px 0; display:flex; flex-direction:column; gap:24px; justify-content:flex-end; align-items:flex-end; border-left:1px solid #f1f5f9; flex-shrink:0; }
+.nav-item { display:flex; align-items:center; justify-content:flex-end; gap:6px; cursor:pointer; background:none; border:none; outline:none; width:100%; }
+.nav-label { color:#94a3b8; font-size:15px; font-weight:600; text-transform:lowercase; transition:color .2s; }
+.nav-dot { color:#e2e8f0; font-size:22px; line-height:1; transition:color .2s; }
+.nav-item.active .nav-label { color:#000; }
+.nav-item.active .nav-dot { color:#FF94B2; }
+
+/* modals */
+.modal-overlay { position:fixed; inset:0; background:#00000080; display:none; align-items:center; justify-content:center; z-index:200; }
+.modal-overlay.open { display:flex; }
+.modal-card { width:340px; background:#fff; border-radius:24px; padding:28px; position:relative; max-height:90vh; overflow-y:auto; }
+.modal-title { font-size:17px; font-weight:800; margin-bottom:18px; color:#0f172a; }
+.modal-field { border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:18px; }
+.modal-field input { width:100%; border:none; outline:none; color:#0f172a; font-size:14.5px; padding:6px 0; }
+.modal-field input::placeholder { color:#94a3b8; }
+.close-x { position:absolute; top:18px; right:20px; background:none; border:none; font-size:18px; cursor:pointer; color:#94a3b8; }
+.modal-error { background:#fee2e2; border:1px solid #fecaca; color:#b91c1c; font-size:12px; padding:8px 12px; border-radius:10px; margin-bottom:14px; display:none; }
+.modal-actions { display:flex; gap:10px; margin-top:8px; }
+.modal-actions .btn-primary { margin:0; }
+.btn-ghost { background:#ffffff !important; color:#000000 !important; }
+.avatar-edit-wrap { display:flex; align-items:center; gap:14px; margin-bottom:20px; }
+.avatar-edit { width:60px; height:60px; border-radius:14px; overflow:hidden; background:#e2e8f0; cursor:pointer; }
+.avatar-edit img { width:100%; height:100%; object-fit:cover; }
+
+/* member list inside modal */
+.member-chip { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:12px; background:#f8f8fb; margin-bottom:8px; }
+.member-chip-av { width:30px; height:30px; border-radius:8px; overflow:hidden; background:#e2e8f0; flex-shrink:0; }
+.member-chip-av img { width:100%; height:100%; object-fit:cover; }
+.member-chip-name { font-size:13px; font-weight:600; color:#0f172a; }
+.empty-state { text-align:center; padding:32px 16px; color:#94a3b8; font-size:13.5px; font-weight:500; }
+
+/* =====================================================================
+   NEW: additive styles only — nothing above this line was changed
+   ===================================================================== */
+
+/* 1) own-message light red border */
+.msg-bubble.is-me { border:1.5px solid #E60023; }
+
+/* 2) unread indicators */
+.nav-badge { background:#000000; color:#fff; font-size:10px; font-weight:800; min-width:16px; height:16px; border-radius:8px; display:none; align-items:center; justify-content:center; padding:0 4px; }
+.list-unread-dot { width:9px; height:9px; border-radius:50%; background:#000000; flex-shrink:0; margin-left:6px; }
+
+/* hover message actions (edit / delete / reply / pin) */
+.msg-actions { display:none; gap:4px; position:absolute; top:-20px; left:0; background:#fff; border:1px solid #f1f5f9; border-radius:10px; padding:3px 5px; box-shadow:0 4px 12px rgba(0,0,0,0.08); z-index:5; }
+.msg-outer:hover .msg-actions { display:flex; }
+.msg-action-btn { background:none; border:none; cursor:pointer; font-size:12px; color:#ffffff; padding:2px 4px; line-height:1; }
+.msg-action-btn:hover { color:#000000; }
+.edit-input { width:100%; border:none; outline:none; background:transparent; font-size:14px; font-family:inherit; color:#0f172a; }
+
+/* 3) pin */
+.pinned-banner { background:#faf5ff; border-bottom:1px solid #f1f5f9; padding:8px 20px; font-size:12px; color:#7c3aed; font-weight:600; cursor:pointer; display:none; align-items:center; gap:6px; flex-shrink:0; }
+.pinned-banner.show { display:flex; }
+
+/* 4) mentions */
+.mention-tag { color:#E60023; font-weight:700; }
+.mention-dropdown { position:absolute; bottom:56px; left:20px; right:20px; background:#fff; border:1px solid #f1f5f9; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.1); max-height:160px; overflow-y:auto; display:none; z-index:60; }
+.mention-dropdown.open { display:block; }
+.mention-item { display:flex; align-items:center; gap:8px; padding:8px 12px; cursor:pointer; font-size:13px; color:#0f172a; }
+.mention-item:hover { background:#f8f8fb; }
+.mention-item img { width:22px; height:22px; border-radius:6px; object-fit:cover; }
+
+/* 5) threading / replies */
+.msg-reply-count { font-size:11px; color:#000000; font-weight:700; cursor:pointer; margin-top:3px; padding-left:4px; }
+.reply-quote { font-size:11px; color:#94a3b8; background:#f8f8fb; border-left:2px solid #000000; padding:4px 8px; border-radius:6px; margin-bottom:4px; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
+.reply-preview-bar { display:none; align-items:center; padding:6px 20px 0; background:#fff; flex-shrink:0; }
+
+/* 6) typing indicator */
+.typing-indicator { font-size:11.5px; color:#94a3b8; padding:0 20px 4px; font-style:italic; min-height:16px; flex-shrink:0; background:#fff; }
+
+/* 7) polls */
+.poll-card { background:#ffffff; border:1px solid #ffffff; border-radius:16px; padding:14px 16px; max-width:78%; margin-bottom:4px; }
+.poll-question { font-weight:700; font-size:13.5px; color:#000000; margin-bottom:10px; }
+.poll-option { position:relative; background:#fff; border:1px solid #ffffff; border-radius:10px; padding:8px 12px; margin-bottom:6px; cursor:pointer; font-size:12.5px; overflow:hidden; }
+.poll-option-bar { position:absolute; top:0; left:0; bottom:0; background:rgba(168,85,247,0.15); z-index:0; }
+.poll-option-label { position:relative; z-index:1; display:flex; justify-content:space-between; gap:8px; }
+.poll-meta { font-size:10.5px; color:#94a3b8; margin-top:4px; }
+.poll-btn { background:#ffffff !important; color:#0f172a !important; }
+
+/* 8) emoji reactions (red/white/black heart only) */
+.msg-reactions { display:flex; gap:4px; margin-top:4px; padding-left:4px; }
+.reaction-btn { display:flex; align-items:center; gap:3px; background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:2px 7px; font-size:12.5px; cursor:pointer; line-height:1.4; }
+.reaction-btn:hover { background:#f8f8fb; }
+.reaction-btn.mine { background:#fff5f5; border-color:#ffb3b3; }
+.reaction-count { font-size:10.5px; color:#94a3b8; font-weight:700; }
+.reaction-btn.mine .reaction-count { color:#000000; }
+
+/* =====================================================================
+   NEW (round 2): attachments, presence, @here/@channel, roles, leave
+   ===================================================================== */
+
+/* 9) file / image attachments */
+.attach-btn { background:#000000 !important; color:#000000 !important; }
+.msg-attachment-img { max-width:220px; max-height:220px; border-radius:12px; margin-top:6px; display:block; cursor:pointer; object-fit:cover; }
+.msg-attachment-file { display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:8px 10px; margin-top:6px; font-size:12.5px; color:#0f172a; text-decoration:none; max-width:220px; }
+.attach-preview-bar { display:none; align-items:center; gap:8px; padding:6px 20px 0; background:#fff; flex-shrink:0; }
+.attach-preview-thumb { width:36px; height:36px; border-radius:8px; object-fit:cover; flex-shrink:0; }
+
+/* 10) presence (online/offline) */
+.list-avatar, .sr-avatar, .avatar-btn, .member-chip-av { position:relative; }
+.presence-dot { position:absolute; bottom:-2px; right:-2px; width:10px; height:10px; border-radius:50%; border:2px solid #fff; background:#94a3b8; z-index:2; }
+.presence-dot.online { background:#22c55e; }
+.thread-title-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#94a3b8; margin-left:7px; vertical-align:middle; }
+.thread-title-dot.online { background:#22c55e; }
+
+/* 11) @here / @channel broadcasts */
+.mention-tag.broadcast { color:#D23F2F; }
+.mention-item.mention-item-special { background:#fff5f5; }
+
+/* 12) roles beyond owner/member + mute */
+.role-badge { font-size:9px; font-weight:800; padding:1px 6px; border-radius:8px; margin-left:6px; text-transform:uppercase; letter-spacing:0.3px; }
+.role-badge.owner { color:#a855f7; background:#faf5ff; }
+.role-badge.admin { color:#2563eb; background:#eff6ff; }
+.role-badge.muted { color:#b91c1c; background:#fee2e2; }
+.member-role-select { font-size:11px; border:1px solid #e2e8f0; border-radius:8px; padding:3px 6px; color:#0f172a; background:#fff; }
+.member-chip-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+.member-action-link { font-size:11px; cursor:pointer; font-weight:700; }
+
+/* 13) leave channel */
+.leave-channel-btn { font-size:11.5px; color:#D23F2F; font-weight:700; cursor:pointer; background:none; border:1px solid #ef4444; border-radius:14px; padding:4px 10px; margin-left:8px; }
+
+/* =====================================================================
+   NEW (round 3): global search, channel privacy, invite links
+   ===================================================================== */
+.search-section-label { font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.3px; padding:10px 8px 4px; }
+.list-row.locked { opacity:0.5; cursor:not-allowed; }
+.private-lock { margin-left:4px; }
+.checkbox-field { display:flex; align-items:center; gap:8px; font-size:12.5px; color:#0f172a; margin-bottom:18px; cursor:pointer; }
+.checkbox-field input { width:16px; height:16px; }
+.invite-link-box { background:#f8f8fb; border:1px solid #f1f5f9; border-radius:12px; padding:10px 12px; font-size:11.5px; color:#0f172a; word-break:break-all; margin-bottom:14px; }
+
+/* =====================================================================
+   NEW (mobile responsive layer) — purely additive, only fires on small
+   screens via @media. Nothing above this line was touched/changed.
+   ===================================================================== */
+@media (max-width: 768px) {
+  /* auth cards: fluid width instead of fixed 340px */
+  .auth-card { width:calc(100% - 40px); max-width:340px; padding:40px 22px 26px; }
+  .auth-title { font-size:23px; }
+
+  /* header */
+  .top-header { padding:0 14px 0 18px; height:66px; border-bottom-left-radius:30px 18px; }
+  .app-title { font-size:20px; }
+  .avatar-btn { width:36px; height:36px; }
+  .ws-menu { min-width:200px; max-width:80vw; top:52px; }
+
+  /* nav dock becomes a fixed bottom tab bar */
+  .main-content { height:calc(100vh - 66px); }
+  .viewport-panel { padding-bottom:60px; }
+  .right-nav-dock {
+    position:fixed; left:0; right:0; bottom:0; z-index:80;
+    width:100%; height:60px; padding:0 6px; gap:0;
+    flex-direction:row; justify-content:space-around; align-items:center;
+    border-left:none; border-top:1px solid #f1f5f9; background:#fff;
+  }
+  .nav-item { flex-direction:column; justify-content:center; align-items:center; gap:2px; width:auto; position:relative; }
+  .nav-label { font-size:10px; }
+  .nav-dot { font-size:16px; }
+  .nav-badge { position:absolute; top:-2px; right:2px; }
+
+  /* view headers / search / lists */
+  .view-header { padding:12px 14px 10px; }
+  .view-title { font-size:17px; }
+  .search-bar-wrap { padding:8px 14px 4px; }
+  .search-results { margin:4px 14px 0; }
+  .list-scroll { padding:6px 8px 10px; }
+  .list-avatar { width:38px; height:38px; }
+
+  /* thread header/scroll/composer */
+  .thread-header { padding:10px 12px; gap:6px; }
+  .thread-title { font-size:14px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .thread-members-btn, .leave-channel-btn { font-size:10.5px; padding:4px 8px; margin-left:0; }
+  .thread-scroll { padding:12px 14px; }
+  .composer { padding:10px 14px; gap:8px; }
+  .composer input { padding:9px 14px; }
+  .composer button { width:38px; height:38px; }
+  .reply-preview-bar, .attach-preview-bar { padding:6px 14px 0; }
+  .typing-indicator { padding:0 14px 4px; }
+  .pinned-banner { padding:8px 14px; }
+  .mention-dropdown { left:14px; right:14px; }
+
+  /* messages / polls widen a bit on narrow screens */
+  .msg-outer, .poll-card { max-width:88%; }
+
+  /* modals: fluid width instead of fixed 340/360px */
+  .modal-card { width:calc(100% - 32px); max-width:340px; padding:22px; }
+
+  /* announcement composer reuses .composer already handled above */
+}
+
+@media (max-width: 400px) {
+  .app-title { font-size:18px; }
+  .nav-label { font-size:9px; }
+  .view-title { font-size:16px; }
+  .modal-card { padding:18px; }
+  .msg-outer, .poll-card { max-width:92%; }
+}
+
+/* =====================================================================
+   NEW (floating +/× nav): a round button bottom-right that expands into
+   the same 4 nav destinations, replacing the bottom tab bar visually on
+   mobile only. Nothing above this line was touched — the original
+   .right-nav-dock and its mobile bottom-tab-bar styles still exist
+   exactly as they were, this block just hides that dock on small screens
+   and adds a new floating control in its place. Hidden while typing.
+   ===================================================================== */
+.mobile-fab-wrap { display:none; }
+@media (max-width: 768px) {
+  .right-nav-dock { display:none; }
+  .viewport-panel { padding-bottom:0; }
+
+  .mobile-fab-wrap {
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+    position:fixed; right:18px; bottom:18px; z-index:90;
+  }
+  .mobile-fab-main {
+    width:56px; height:56px; border-radius:50%; background:#E60023; color:#fff;
+    border:none; font-size:24px; line-height:1; display:flex; align-items:center;
+    justify-content:center; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,0.3);
+    position:relative; z-index:2; transition:transform .25s ease; flex-shrink:0;
+  }
+  .mobile-fab-main.open { transform:rotate(45deg); }
+  .mobile-fab-item {
+    width:46px; height:46px; border-radius:50%; background:#15151a; color:#fff;
+    border:none; font-size:17px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; box-shadow:0 6px 16px rgba(0,0,0,0.25); position:relative;
+    opacity:0; transform:scale(0.4) translateY(16px); pointer-events:none;
+    transition:opacity .2s ease, transform .2s ease; transition-delay:0s; flex-shrink:0;
+  }
+  .mobile-fab-wrap.open .mobile-fab-item {
+    opacity:1; transform:scale(1) translateY(0); pointer-events:auto;
+    transition-delay: calc(var(--i, 0) * 0.04s);
+  }
+  .mobile-fab-item.active { background:#a855f7; }
+  .mobile-fab-item .nav-badge { position:absolute; top:-3px; right:-3px; }
+
+  /* hide the FAB entirely while composing a message anywhere in the app */
+  body.typing-mode .mobile-fab-wrap { display:none; }
+}
+
+/* =====================================================================
+   NEW (requested tasks): composer "+" menu (attach/poll), double-click-to-
+   expand message actions, swipe-right-to-reply, persistent pin badge, and
+   a persistent small reaction summary. Purely additive — nothing above
+   this line was changed.
+   ===================================================================== */
+
+/* composer "+" menu, sits near the send button */
+.composer-plus-wrap { position:relative; flex-shrink:0; }
+.composer-plus-btn { background:#15151a; color:#fff; border:none; width:42px; height:42px; border-radius:50%; font-size:20px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .2s ease; flex-shrink:0; }
+.composer-plus-btn.open { transform:rotate(45deg); }
+.composer-plus-menu { display:none; position:absolute; bottom:52px; right:0; background:#fff; border:1px solid #f1f5f9; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.12); padding:6px; min-width:180px; z-index:70; }
+.composer-plus-menu.open { display:block; }
+.composer-plus-item { display:flex; align-items:center; gap:8px; padding:9px 10px; border-radius:10px; cursor:pointer; font-size:13px; color:#0f172a; font-weight:600; white-space:nowrap; }
+.composer-plus-item:hover { background:#f8f8fb; }
+.composer-plus-item-icon { width:20px; height:20px; border-radius:50%; background:#f1f5f9; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:#a855f7; flex-shrink:0; }
+
+/* message: time / hover-actions / reaction-picker stay hidden inside the
+   text until the message is double-clicked (or double-tapped) open */
+.msg-time { display:none; }
+.msg-outer.expanded .msg-time { display:block; }
+.msg-actions { display:none !important; }
+.msg-outer.expanded .msg-actions { display:flex !important; }
+.msg-reactions { display:none; }
+.msg-outer.expanded .msg-reactions { display:flex; }
+.msg-bubble { cursor:pointer; transition:transform .15s ease; touch-action:pan-y; }
+
+/* persistent pin badge, attached to the left corner of a pinned message */
+.msg-pin-indicator { position:absolute; top:-8px; left:-6px; font-size:12px; background:#fff; border:1px solid #f1f5f9; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.08); z-index:6; }
+
+/* persistent small reaction summary, bottom-left corner of the message.
+   Channel messages also show a count per reaction. */
+.msg-reaction-summary { position:absolute; bottom:-11px; left:6px; display:flex; gap:3px; z-index:4; }
+.msg-reaction-summary-chip { display:flex; align-items:center; gap:2px; background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:1px 5px; font-size:10.5px; box-shadow:0 2px 4px rgba(0,0,0,0.06); }
+.msg-reaction-summary-chip .rc-count { font-size:9px; color:#94a3b8; font-weight:700; }
+
+/* =====================================================================
+   NEW: MESSAGE ACTION CARD — double-clicking a message now opens a single
+   card (instead of scattering time/pin/edit/delete/reactions around the
+   bubble) listing everything together so the person can pick one action.
+   Purely additive — nothing above this line was changed.
+   ===================================================================== */
+.msg-card-meta { font-size:12px; color:#94a3b8; font-weight:600; margin-bottom:16px; }
+.msg-card-reaction-row { display:flex; gap:8px; margin-bottom:18px; }
+.msg-card-reaction-btn { display:flex; align-items:center; gap:5px; background:#f8f8fb; border:1px solid #e2e8f0; border-radius:14px; padding:7px 13px; font-size:16px; cursor:pointer; }
+.msg-card-reaction-btn:hover { background:#f1f5f9; }
+.msg-card-reaction-btn.mine { background:#fff5f5; border-color:#ffb3b3; }
+.msg-card-reaction-btn .rcount { font-size:11px; color:#94a3b8; font-weight:700; }
+.msg-card-reaction-btn.mine .rcount { color:#e05555; }
+.msg-card-actions { display:flex; flex-direction:column; gap:8px; }
+.msg-card-action-btn { display:flex; align-items:center; gap:10px; padding:11px 13px; border-radius:12px; cursor:pointer; font-size:13.5px; font-weight:600; color:#0f172a; background:#f8f8fb; border:1px solid #f1f5f9; }
+.msg-card-action-btn:hover { background:#f1f5f9; }
+.msg-card-action-btn.danger { color:#ef4444; }
+
+/* =====================================================================
+   NEW: move the search bars down to sit beside the mobile floating +/×
+   nav button, instead of at the top of their views. Mobile only — purely
+   additive, nothing above this line changed. The dropdown results panel
+   moves along with it and opens upward, above the bar.
+   ===================================================================== */
+@media (max-width: 768px) {
+  .search-bar-wrap {
+    position: fixed;
+    left: 14px;
+    right: 84px;
+    bottom: 18px;
+    padding: 0;
+    z-index: 85;
+    background: transparent;
+  }
+  .search-bar {
+    background: #fff;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+  }
+  .search-results {
+    position: fixed;
+    left: 14px;
+    right: 84px;
+    bottom: 66px;
+    margin: 0;
+    max-height: 240px;
+    overflow-y: auto;
+    z-index: 86;
+  }
+  /* keep list content from hiding behind the now-fixed search bar */
+  #dm-list, #global-search-results {
+    padding-bottom: 74px;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div class="auth-wrap" id="auth-wrap">
+  <div class="auth-card" id="login-card">
+    <div class="auth-title">Log into<br>your account</div>
+    <div class="auth-error" id="login-error"></div>
+    <div class="field"><input id="login-username" placeholder="Username" autocomplete="off"></div>
+    <div class="field"><input id="login-password" type="password" placeholder="Password"></div>
+    <button class="btn-primary" onclick="handleLogin()">Log In</button>
+    <div class="auth-switch">Don't have an account? <a onclick="showSignup()">Sign Up</a></div>
+  </div>
+  <div class="auth-card" id="signup-card" style="display:none">
+    <div class="auth-title">Create your<br>workspace ID</div>
+    <div class="auth-error" id="signup-error"></div>
+    <div class="field"><input id="signup-displayname" placeholder="Your real name" autocomplete="off"></div>
+    <div class="field"><input id="signup-username" placeholder="Choose a username" autocomplete="off"></div>
+    <div class="hint">Letters/numbers/underscore only. Taken? We add a number automatically.</div>
+    <div class="field"><input id="signup-email" type="email" placeholder="Email address" autocomplete="off"></div>
+    <div class="field"><input id="signup-password" type="password" placeholder="Password (6+ chars)"></div>
+    <button class="btn-primary" onclick="handleSignup()">Sign Up</button>
+    <div class="auth-switch">Already have an account? <a onclick="showLogin()">Log In</a></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app-container" id="app-container">
+  <header class="top-header">
+    <div class="ws-switcher" onclick="toggleWsMenu(event)">
+      <div class="app-title" id="ws-name">95<span>⚡</span></div>
+      <div class="ws-caret">▾</div>
+      <div class="ws-menu" id="ws-menu"></div>
+    </div>
+    <div class="avatar-btn" onclick="openProfileModal()">
+      <img id="user-avatar" src="" alt="me">
+    </div>
+  </header>
+
+  <main class="main-content">
+    <section class="viewport-panel">
+
+      <!-- MESSAGES -->
+      <div id="view-messages" class="view-section active">
+        <!-- list pane -->
+        <div id="dm-list-pane" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
+          <div class="view-header">
+            <span class="view-title">direct messages</span>
+          </div>
+          <div class="search-bar-wrap">
+            <input class="search-bar" id="dm-search" placeholder="Search members..." oninput="onDmSearch()" onfocus="showSearchResults()" autocomplete="off">
+          </div>
+          <div class="search-results" id="search-results"></div>
+          <div class="list-scroll" id="dm-list"></div>
+        </div>
+        <!-- thread pane -->
+        <div class="thread-wrap" id="dm-thread">
+          <div class="thread-header">
+            <button class="thread-back" onclick="closeDmThread()">←</button>
+            <div class="thread-title" id="dm-thread-title"></div>
+          </div>
+          <div class="thread-scroll" id="dm-thread-scroll"></div>
+          <div class="reply-preview-bar" id="dm-reply-preview"></div>
+          <div class="attach-preview-bar" id="dm-attach-preview"></div>
+          <div class="typing-indicator" id="dm-typing"></div>
+          <div class="composer">
+            <input type="file" id="dm-attach-file" accept="image/*,.pdf,.doc,.docx,.txt,.zip" style="display:none" onchange="handleAttachUpload(event,'dm')">
+            <input id="dm-input" placeholder="Message..." oninput="notifyTyping('dm', S.activeDm && S.activeDm.thread.id)" onkeydown="if(event.key==='Enter')sendDmMessage()">
+            <div class="composer-plus-wrap">
+              <button class="composer-plus-btn" id="dm-plus-btn" onclick="toggleComposerPlus('dm')" title="More">+</button>
+              <div class="composer-plus-menu" id="dm-plus-menu">
+                <div class="composer-plus-item" onclick="document.getElementById('dm-attach-file').click();closeComposerPlus('dm')"><span class="composer-plus-item-icon">+</span>Attach a file</div>
+              </div>
+            </div>
+            <button onclick="sendDmMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHANNELS -->
+      <div id="view-channels" class="view-section">
+        <div id="channel-list-pane" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
+          <div class="view-header">
+            <span class="view-title">channels</span>
+            <button class="add-btn" onclick="openNewChannel()">+ new</button>
+          </div>
+          <div class="list-scroll" id="channel-list"></div>
+        </div>
+        <div class="thread-wrap" id="channel-thread">
+          <div class="thread-header">
+            <button class="thread-back" onclick="closeChannelThread()">←</button>
+            <div class="thread-title" id="channel-thread-title"></div>
+            <button class="thread-members-btn" onclick="openChannelMembers()">members</button>
+            <button class="leave-channel-btn" onclick="leaveChannel()" title="Leave this channel">leave</button>
+          </div>
+          <div class="pinned-banner" id="pinned-banner" onclick="scrollToPinned()">
+            <span>📌</span><span id="pinned-banner-text"></span>
+          </div>
+          <div class="thread-scroll" id="channel-thread-scroll"></div>
+          <div class="reply-preview-bar" id="channel-reply-preview"></div>
+          <div class="attach-preview-bar" id="channel-attach-preview"></div>
+          <div class="typing-indicator" id="channel-typing"></div>
+          <div class="composer">
+            <div class="mention-dropdown" id="mention-dropdown"></div>
+            <input type="file" id="channel-attach-file" accept="image/*,.pdf,.doc,.docx,.txt,.zip" style="display:none" onchange="handleAttachUpload(event,'channel')">
+            <input id="channel-input" placeholder="Message... (@ to mention, @here, @channel)" oninput="onChannelInputChange()" onkeydown="if(event.key==='Enter'){event.preventDefault();sendChannelMessage();}">
+            <div class="composer-plus-wrap">
+              <button class="composer-plus-btn" id="channel-plus-btn" onclick="toggleComposerPlus('channel')" title="More">+</button>
+              <div class="composer-plus-menu" id="channel-plus-menu">
+                <div class="composer-plus-item" onclick="document.getElementById('channel-attach-file').click();closeComposerPlus('channel')"><span class="composer-plus-item-icon">+</span>Attach a file</div>
+                <div class="composer-plus-item" onclick="openPollCreate();closeComposerPlus('channel')"><span class="composer-plus-item-icon">+</span>Create a poll</div>
+              </div>
+            </div>
+            <button onclick="sendChannelMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPCOMINGS -->
+      <div id="view-upcomings" class="view-section">
+        <div class="view-header"><span class="view-title">upcomings</span></div>
+        <div class="thread-scroll" id="announce-scroll" style="flex:1;padding:14px 20px;"></div>
+        <div id="announce-composer-wrap"></div>
+      </div>
+
+      <!-- NEW: GLOBAL SEARCH (workspace-wide: members + channels) -->
+      <div id="view-search" class="view-section">
+        <div class="view-header"><span class="view-title">search</span></div>
+        <div class="search-bar-wrap">
+          <input class="search-bar" id="global-search" placeholder="Search members & channels..." oninput="onGlobalSearch()" autocomplete="off">
+        </div>
+        <div class="list-scroll" id="global-search-results"></div>
+      </div>
+
+    </section>
+
+    <nav class="right-nav-dock">
+      <button onclick="switchView('messages')" id="nav-messages" class="nav-item active">
+        <span class="nav-badge" id="badge-messages">0</span>
+        <span class="nav-label">messages</span><span class="nav-dot">•</span>
+      </button>
+      <button onclick="switchView('channels')" id="nav-channels" class="nav-item">
+        <span class="nav-badge" id="badge-channels">0</span>
+        <span class="nav-label">channels</span><span class="nav-dot">•</span>
+      </button>
+      <button onclick="switchView('upcomings')" id="nav-upcomings" class="nav-item">
+        <span class="nav-label">upcomings</span><span class="nav-dot">•</span>
+      </button>
+      <button onclick="switchView('search')" id="nav-search" class="nav-item">
+        <span class="nav-label">search</span><span class="nav-dot">•</span>
+      </button>
+    </nav>
+
+    <!-- NEW: mobile floating +/× nav — same 4 destinations as the dock
+         above (which is left untouched, just hidden on mobile via CSS) -->
+    <div class="mobile-fab-wrap" id="mobile-fab-wrap">
+      <button class="mobile-fab-item" data-view="search" style="--i:4" onclick="mobileFabNavigate('search')" title="Search">
+        <span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><circle cx="10" cy="10" r="6.2"/><line x1="20" y1="20" x2="14.6" y2="14.6"/></svg></span>
+      </button>
+      <button class="mobile-fab-item" data-view="upcomings" style="--i:3" onclick="mobileFabNavigate('upcomings')" title="Upcomings">
+        <span><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2a1 1 0 0 1 1 1v1.06A7.002 7.002 0 0 1 19 11v4.586l1.707 1.707A1 1 0 0 1 20 19H4a1 1 0 0 1-.707-1.707L5 15.586V11a7.002 7.002 0 0 1 6-6.94V3a1 1 0 0 1 1-1zm2 18a2 2 0 1 1-4 0h4z"/></svg></span>
+      </button>
+      <button class="mobile-fab-item" data-view="channels" style="--i:2" onclick="mobileFabNavigate('channels')" title="Channels">
+        <span>#</span>
+        <span class="nav-badge" id="badge-channels-fab">0</span>
+      </button>
+      <button class="mobile-fab-item" data-view="messages" style="--i:1" onclick="mobileFabNavigate('messages')" title="Messages">
+        <span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg></span>
+        <span class="nav-badge" id="badge-messages-fab">0</span>
+      </button>
+      <button class="mobile-fab-main" id="mobile-fab-main" onclick="toggleMobileFab()">
+        <span id="mobile-fab-icon">+</span>
+      </button>
+    </div>
+  </main>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="modal-overlay" id="profile-modal">
+  <div class="modal-card">
+    <button class="close-x" onclick="closeProfileModal()">✕</button>
+    <div class="modal-title">Your profile</div>
+    <div class="avatar-edit-wrap">
+      <div class="avatar-edit" onclick="document.getElementById('avatar-file').click()">
+        <img id="profile-avatar-preview" src="">
+      </div>
+      <input type="file" id="avatar-file" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
+      <div style="font-size:12px;color:#94a3b8;line-height:1.5;">Tap photo to change (max 200KB).<br>This name shows to others.</div>
+    </div>
+    <div class="modal-field"><input id="profile-displayname" placeholder="Real name (shown to others)"></div>
+    <div class="modal-field"><input id="profile-phone" placeholder="Phone number"></div>
+    <div class="modal-field"><input id="profile-birthday" type="date"></div>
+    <div style="font-size:11.5px;color:#94a3b8;margin-bottom:16px;"> <strong id="profile-username-show"></strong></div>
+    <div class="modal-actions">
+      <button class="btn-primary" style="margin:0" onclick="saveProfile()">Save</button>
+      <button class="btn-primary btn-ghost" style="margin:0" onclick="handleLogout()">Log out</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW CHANNEL MODAL -->
+<div class="modal-overlay" id="newchannel-modal">
+  <div class="modal-card">
+    <button class="close-x" onclick="closeNewChannel()">✕</button>
+    <div class="modal-title">Create a channel</div>
+    <div class="modal-error" id="newchannel-error"></div>
+    <div class="modal-field"><input id="newchannel-name" placeholder="Channel name (e.g. math-help)"></div>
+    <label class="checkbox-field"><input type="checkbox" id="newchannel-private"> Make this channel private (invite-only — hidden from search)</label>
+    <button class="btn-primary" onclick="createChannel()">Create channel</button>
+  </div>
+</div>
+
+<!-- NEW: INVITE LINK MODAL -->
+<div class="modal-overlay" id="invite-modal">
+  <div class="modal-card">
+    <button class="close-x" onclick="closeInviteModal()">✕</button>
+    <div class="modal-title">Invite people to this workspace</div>
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:14px;">Anyone with this link can join <strong id="invite-ws-name"></strong> after creating an account.</div>
+    <div class="invite-link-box" id="invite-link-box">Generating…</div>
+    <button class="btn-primary" onclick="copyInviteLink()">Copy link</button>
+  </div>
+</div>
+
+<!-- CHANNEL MEMBERS MODAL -->
+<div class="modal-overlay" id="channel-members-modal">
+  <div class="modal-card">
+    <button class="close-x" onclick="closeChannelMembers()">✕</button>
+    <div class="modal-title">Channel members</div>
+    <div id="channel-members-list" style="margin-bottom:18px;"></div>
+    <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:10px;">Add a member</div>
+    <div class="modal-error" id="addmember-error"></div>
+    <div class="modal-field"><input id="addmember-username" placeholder="Username (must be in this workspace)"></div>
+    <button class="btn-primary" onclick="addChannelMember()">Add</button>
+  </div>
+</div>
+
+<!-- NEW WORKSPACE MODAL -->
+<div class="modal-overlay" id="newws-modal">
+  <div class="modal-card">
+    <button class="close-x" onclick="closeNewWs()">X</button>
+    <div class="modal-title">Create a workspace</div>
+    <div class="modal-error" id="newws-error"></div>
+    <div class="modal-field"><input id="newws-name" placeholder="e.g. cat, dog, Class 10-A"></div>
+    <button class="btn-primary" onclick="createWorkspace()">Create</button>
+  </div>
+</div>
+
+<!-- WORKSPACE MEMBERS MODAL -->
+<div class="modal-overlay" id="wsmembers-modal">
+  <div class="modal-card">
+    <button class="close-x" onclick="closeWsMembers()">X</button>
+    <div class="modal-title" id="wsmembers-title">Members</div>
+    <div id="wsmembers-list" style="margin-bottom:20px;max-height:220px;overflow-y:auto;"></div>
+    <div id="wsmembers-add-wrap">
+      <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:10px;">Add member by username</div>
+      <div class="modal-error" id="wsmembers-error"></div>
+      <div class="modal-field"><input id="wsmembers-username" placeholder="Their exact username" autocomplete="off"></div>
+      <button class="btn-primary" onclick="addWsMember()">Add to workspace</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW: THREAD / REPLIES MODAL -->
+<div class="modal-overlay" id="thread-modal">
+  <div class="modal-card" style="width:360px;">
+    <button class="close-x" onclick="closeThreadModal()">✕</button>
+    <div class="modal-title">Thread</div>
+    <div id="thread-parent-preview" style="margin-bottom:12px;"></div>
+    <div id="thread-replies-list" style="max-height:280px;overflow-y:auto;margin-bottom:14px;"></div>
+    <div class="modal-field"><input id="thread-reply-input" placeholder="Reply..." onkeydown="if(event.key==='Enter')sendThreadReply()"></div>
+    <button class="btn-primary" onclick="sendThreadReply()">Reply</button>
+  </div>
+</div>
+
+<!-- NEW: POLL CREATE MODAL -->
+<div class="modal-overlay" id="poll-modal">
+  <div class="modal-card">
+    <button class="close-x" onclick="closePollCreate()">✕</button>
+    <div class="modal-title">Create a poll</div>
+    <div class="modal-error" id="poll-error"></div>
+    <div class="modal-field"><input id="poll-question" placeholder="Ask a question"></div>
+    <div id="poll-options-wrap">
+      <div class="modal-field"><input class="poll-option-input" placeholder="Option 1"></div>
+      <div class="modal-field"><input class="poll-option-input" placeholder="Option 2"></div>
+    </div>
+    <div style="font-size:12px;color:#a855f7;font-weight:700;cursor:pointer;margin-bottom:16px;" onclick="addPollOptionField()">+ add option</div>
+    <button class="btn-primary" onclick="submitPoll()">Post poll</button>
+  </div>
+</div>
+
+<!-- NEW: MESSAGE ACTION CARD (opens on double-click of a message) -->
+<div class="modal-overlay" id="msg-card-modal">
+  <div class="modal-card" style="width:300px;">
+    <button class="close-x" onclick="closeMsgActionCard()">✕</button>
+    <div class="msg-card-meta" id="msg-card-time"></div>
+    <div class="msg-card-reaction-row" id="msg-card-reactions"></div>
+    <div class="msg-card-actions" id="msg-card-actions"></div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   ⚠️ PASTE YOUR SUPABASE CREDENTIALS BELOW
+   Supabase Dashboard → Settings → API
+   ===================================================================== */
+const SUPABASE_URL      = "https://haxnqgrnebbdcfngyoma.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhheG5xZ3JuZWJiZGNmbmd5b21hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NDQzMzYsImV4cCI6MjA5ODQyMDMzNn0.mpLME9hWXrj7ZHmsejMVIXL2aNfJwLwLbqxwcTOJxlw";
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true }   // ← stays logged in
+});
+
+// auth uses real email — no fake domain needed
+
+let S = {
+  session: null, profile: null,
+  workspaces: [], currentWs: null,
+  members: [],   // workspace members (profiles)
+  channels: [], activeChannel: null, channelMembers: [],
+  dmThreads: [], activeDm: null,
+  realtimeSubs: [],
+  // NEW state for the 9 additions
+  dmMsgCache: { all:[], repliesMap:{}, top:[] },
+  channelMsgCache: { all:[], repliesMap:{}, top:[] },
+  channelPolls: [],
+  typingChannels: {},
+  replyTarget: null,        // { type:'dm'|'channel', id }
+  threadType: null, threadParentId: null,
+  // NEW: single-slot tracking for the currently-open thread's realtime
+  // subscriptions, so switching threads tears down the old ones instead
+  // of leaving them connected in the background forever.
+  dmThreadChannel: null, channelThreadChannel: null,
+  dmTypingChannel: null, channelTypingChannel: null,
+  // NEW (round 2): presence + attachments
+  onlineUsers: new Set(),      // set of user ids currently online in this workspace
+  presenceChannel: null,
+  pendingAttachment: {},       // { dm: {url,type,name}, channel: {url,type,name} }
+  // NEW (round 3): invite-link workspace id currently shown in the invite modal
+  inviteModalWsId: null,
+  // NEW: pagination state for infinite scroll-back (load 50 at a time)
+  dmLoadedCount: 50, dmHasMore: false, dmLoadingMore: false,
+  channelLoadedCount: 50, channelHasMore: false, channelLoadingMore: false
+};
+
+/* NEW: remove a thread's live subscriptions (message listener + typing
+   presence) before opening a different thread, or when a thread is closed.
+   This is what stops subscriptions from piling up as the user clicks
+   through multiple DMs/channels in one session. */
+function teardownDmThreadChannels(){
+  if(S.dmThreadChannel){ sb.removeChannel(S.dmThreadChannel); S.realtimeSubs=S.realtimeSubs.filter(c=>c!==S.dmThreadChannel); S.dmThreadChannel=null; }
+  if(S.dmTypingChannel){ sb.removeChannel(S.dmTypingChannel); S.realtimeSubs=S.realtimeSubs.filter(c=>c!==S.dmTypingChannel); S.dmTypingChannel=null; }
+}
+function teardownChannelThreadChannels(){
+  if(S.channelThreadChannel){ sb.removeChannel(S.channelThreadChannel); S.realtimeSubs=S.realtimeSubs.filter(c=>c!==S.channelThreadChannel); S.channelThreadChannel=null; }
+  if(S.channelTypingChannel){ sb.removeChannel(S.channelTypingChannel); S.realtimeSubs=S.realtimeSubs.filter(c=>c!==S.channelTypingChannel); S.channelTypingChannel=null; }
+}
+
+/* ========== UTILS ========== */
+const $  = (id) => document.getElementById(id);
+const esc = (s) => (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dicebear = (seed) => `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(seed||'?')}`;
+const fmtTime  = (iso) => { const d=new Date(iso); return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); };
+const showErr  = (id,msg) => { const e=$(id); e.textContent=msg; e.style.display='block'; };
+const hideErr  = (id) => { $(id).style.display='none'; };
+let lastWsId = null;
+
+/* ========== AUTH ========== */
+function showSignup(){ $('login-card').style.display='none'; $('signup-card').style.display='block'; }
+function showLogin(){  $('signup-card').style.display='none'; $('login-card').style.display='block'; }
+
+async function handleSignup(){
+  hideErr('signup-error');
+  const displayName = $('signup-displayname').value.trim();
+  let username = $('signup-username').value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+  const email = $('signup-email').value.trim().toLowerCase();
+  const password = $('signup-password').value;
+  if(!displayName||!username||!email||password.length<6) return showErr('signup-error','Fill all fields. Password needs 6+ characters.');
+  if(!email.includes('@')) return showErr('signup-error','Enter a valid email address.');
+
+  const {data:ex} = await sb.from('profiles').select('username').eq('username',username);
+  let finalU = username;
+  if(ex&&ex.length) finalU = username + Math.floor(1000+Math.random()*9000);
+
+  const {data:su,error} = await sb.auth.signUp({email, password});
+  if(error) return showErr('signup-error',error.message);
+
+  const {error:pe} = await sb.from('profiles').insert({id:su.user.id,username:finalU,display_name:displayName,email});
+  if(pe) return showErr('signup-error',pe.message);
+
+  if(finalU!==username) showErr('signup-error',`"${username}" was taken — you're now @${finalU}. Logging you in…`);
+  await boot();
+}
+
+async function handleLogin(){
+  hideErr('login-error');
+  const raw = $('login-username').value.trim().toLowerCase();
+  const pass = $('login-password').value;
+  if(!raw||!pass) return showErr('login-error','Enter your username and password.');
+
+  // look up their real email from the profiles table using username
+  const {data:profile, error:pe} = await sb.from('profiles').select('id').eq('username', raw).maybeSingle();
+  if(pe||!profile){
+    // maybe they typed their email directly — try it as-is
+    if(raw.includes('@')){
+      const {error} = await sb.auth.signInWithPassword({email:raw, password:pass});
+      if(error) return showErr('login-error','Wrong username/email or password.');
+      await boot(); return;
+    }
+    return showErr('login-error','No account with that username.');
+  }
+
+  // get their email from auth — use RPC or just try signing in with email lookup
+  // Since we stored email in profiles, fetch it
+  const {data:fullP} = await sb.from('profiles').select('email').eq('username', raw).maybeSingle();
+  const email = fullP?.email;
+  if(!email) return showErr('login-error','Account setup incomplete. Try logging in with your email instead.');
+  const {error} = await sb.auth.signInWithPassword({email, password:pass});
+  if(error) return showErr('login-error','Wrong password.');
+  await boot();
+}
+
+async function handleLogout(){
+  await sb.auth.signOut();
+  location.reload();
+}
+
+/* ========== BOOT ========== */
+async function boot(){
+  const {data:{session}} = await sb.auth.getSession();
+  if(!session) return; // stay on auth
+
+  S.session = session;
+  const {data:profile} = await sb.from('profiles').select('*').eq('id',session.user.id).single();
+  S.profile = profile;
+
+  $('auth-wrap').style.display = 'none';
+  $('app-container').style.display = 'flex';
+  $('user-avatar').src = profile.avatar_url || dicebear(profile.username);
+
+  await processInvite(); // NEW: join a workspace automatically if ?invite=TOKEN is in the URL
+  await loadWorkspaces();
+}
+
+/* ========== NEW: INVITE LINKS ========== */
+// A link looks like: https://yourapp.com/?invite=TOKEN
+// Clicking it just opens this page. If the person isn't logged in yet, they
+// log in or sign up as normal (the ?invite=TOKEN stays in the URL the whole
+// time since this is a single-page app and nothing ever navigates away).
+// Once boot() runs after auth, this looks up the token and joins them to
+// that workspace automatically — no separate "accept invite" step needed.
+async function processInvite(){
+  const token = new URLSearchParams(location.search).get('invite');
+  if(!token) return;
+  const {data:invite} = await sb.from('workspace_invites').select('workspace_id').eq('token',token).maybeSingle();
+  if(!invite) return; // bad/expired link — silently ignore, they just land on their normal workspace list
+  const {data:already} = await sb.from('workspace_members').select('workspace_id').eq('workspace_id',invite.workspace_id).eq('user_id',S.profile.id).maybeSingle();
+  if(!already){
+    const {error} = await sb.from('workspace_members').insert({workspace_id:invite.workspace_id, user_id:S.profile.id, role:'member'});
+    if(error){ console.error(error.message); return; }
+  }
+  lastWsId = invite.workspace_id; // land them straight in the workspace they were invited to
+  history.replaceState({}, '', location.pathname); // strip ?invite=TOKEN so a refresh doesn't re-process it
+}
+
+function openInviteModal(){
+  $('ws-menu').classList.remove('open');
+  $('invite-ws-name').textContent = S.currentWs.name;
+  $('invite-link-box').textContent = 'Generating…';
+  $('invite-modal').classList.add('open');
+  generateInviteLink();
+}
+function closeInviteModal(){ $('invite-modal').classList.remove('open'); }
+
+async function generateInviteLink(){
+  const wsId = S.currentWs.id;
+  S.inviteModalWsId = wsId;
+  // reuse an existing token for this workspace if one was already generated
+  let {data:existing} = await sb.from('workspace_invites').select('token').eq('workspace_id',wsId).maybeSingle();
+  let token = existing?.token;
+  if(!token){
+    token = (crypto.randomUUID ? crypto.randomUUID() : (Date.now()+Math.random())).toString().replace(/-/g,'').slice(0,16);
+    const {error} = await sb.from('workspace_invites').insert({workspace_id:wsId, token, created_by:S.profile.id});
+    if(error){ $('invite-link-box').textContent = 'Could not create invite link: '+error.message; return; }
+  }
+  const link = `${location.origin}${location.pathname}?invite=${token}`;
+  if(S.inviteModalWsId===wsId) $('invite-link-box').textContent = link;
+}
+
+async function copyInviteLink(){
+  const link = $('invite-link-box').textContent;
+  if(!link || link.startsWith('Generating') || link.startsWith('Could not')) return;
+  try{ await navigator.clipboard.writeText(link); alert('Invite link copied to clipboard!'); }
+  catch(_e){ prompt('Copy this invite link:', link); }
+}
+
+/* ========== WORKSPACES ========== */
+async function loadWorkspaces(){
+  const {data} = await sb.from('workspace_members')
+    .select('role, workspaces(id,name,slug,created_by)')
+    .eq('user_id',S.profile.id);
+  S.workspaces = (data||[]).map(r=>({...r.workspaces, myRole:r.role}));
+
+  if(!S.workspaces.length){
+    $('ws-name').innerHTML='create a workspace<span>⚡</span>';
+    renderWsMenu(); return;
+  }
+  const pick = S.workspaces.find(w=>w.id===lastWsId)||S.workspaces[0];
+  await switchWorkspace(pick.id);
+  renderWsMenu();
+}
+
+function renderWsMenu(){
+  const m=$('ws-menu'); let html='';
+  S.workspaces.forEach(w=>{
+    const cur = S.currentWs&&w.id===S.currentWs.id;
+    html+=`<div class="ws-menu-item ${cur?'current':''}" onclick="switchWorkspace('${w.id}');event.stopPropagation()">
+      <span>${esc(w.name)}</span>${cur?'<span style="color:#a855f7">✓</span>':''}
+    </div>`;
+  });
+  if(S.currentWs && S.currentWs.myRole==='owner'){
+    html+=`<div class="ws-menu-divider"></div><div class="ws-menu-create" onclick="openWsMembers();event.stopPropagation()">👥 Manage members</div>`;
+    html+=`<div class="ws-menu-create" onclick="openInviteModal();event.stopPropagation()">🔗 Invite link</div>`; // NEW
+  } else {
+    html+=`<div class="ws-menu-divider"></div>`;
+  }
+  html+=`<div class="ws-menu-create" onclick="openNewWs();event.stopPropagation()">+ Create a workspace</div>`;
+  m.innerHTML=html;
+}
+
+function toggleWsMenu(e){ e.stopPropagation(); $('ws-menu').classList.toggle('open'); }
+
+async function switchWorkspace(id){
+  lastWsId=id;
+  S.currentWs=S.workspaces.find(w=>w.id===id);
+  $('ws-menu').classList.remove('open');
+  if(!S.currentWs) return;
+  $('ws-name').innerHTML=esc(S.currentWs.name)+'<span>⚡</span>';
+  renderWsMenu();
+  closeDmThread(); closeChannelThread();
+  S.realtimeSubs.forEach(c=>sb.removeChannel(c)); S.realtimeSubs=[];
+  S.typingChannels = {};
+  // NEW: everything above already got removed via the loop, just clear our refs
+  S.dmThreadChannel=null; S.channelThreadChannel=null;
+  S.dmTypingChannel=null; S.channelTypingChannel=null;
+  S.presenceChannel=null; S.onlineUsers=new Set(); // NEW: reset presence on workspace switch
+  await loadMembers();
+  await loadChannels();
+  await loadDmThreads();
+  await loadAnnouncements();
+  await refreshUnreadBadges();
+  setupGlobalUnreadListener();
+  setupPresenceChannel(); // NEW: online/offline presence for this workspace
+}
+
+function openNewWs(){ $('newws-modal').classList.add('open'); $('ws-menu').classList.remove('open'); }
+function closeNewWs(){ $('newws-modal').classList.remove('open'); hideErr('newws-error'); }
+
+async function createWorkspace(){
+  const name=$('newws-name').value.trim();
+  if(!name) return;
+  const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-'+Math.floor(Math.random()*10000);
+  const {data,error}=await sb.rpc('create_workspace_with_owner',{ws_name:name, ws_slug:slug});
+  if(error){showErr('newws-error',error.message);return;}
+  closeNewWs(); $('newws-name').value='';
+  await loadWorkspaces();
+  await switchWorkspace(data.id);
+}
+
+/* ========== MEMBERS ========== */
+async function loadMembers(){
+  const {data}=await sb.from('workspace_members')
+    .select('role, profiles(id,username,display_name,avatar_url)')
+    .eq('workspace_id',S.currentWs.id);
+  S.members=(data||[]).map(r=>({...r.profiles, wsRole:r.role}));
+}
+
+/* ========== SEARCH (messages pane) ========== */
+function onDmSearch(){
+  const q=$('dm-search').value.trim().toLowerCase();
+  const res=$('search-results');
+  if(!q){ res.classList.remove('open'); return; }
+  const hits=S.members.filter(m=>m.id!==S.profile.id&&(m.username.includes(q)||(m.display_name||'').toLowerCase().includes(q)));
+  if(!hits.length){ res.innerHTML='<div style="padding:12px 14px;color:#94a3b8;font-size:13px;">No members found</div>'; res.classList.add('open'); return; }
+  res.innerHTML=hits.map(m=>`
+    <div class="search-result-item" onclick="startDmWith('${m.id}')">
+      <div class="sr-avatar">${presenceDotHTML(m.id)}<img src="${esc(m.avatar_url||dicebear(m.username))}"></div>
+      <div><div class="sr-name">${esc(m.display_name||m.username)}</div><div class="sr-uname">@${esc(m.username)}</div></div>
+    </div>`).join('');
+  res.classList.add('open');
+}
+
+function showSearchResults(){ if($('dm-search').value.trim()) onDmSearch(); }
+
+async function startDmWith(userId){
+  $('search-results').classList.remove('open');
+  $('dm-search').value='';
+  const other=S.members.find(m=>m.id===userId);
+  if(!other) return;
+  const [user_a,user_b]=[S.profile.id,userId].sort();
+  let {data:ex}=await sb.from('dm_threads').select('*').eq('workspace_id',S.currentWs.id).eq('user_a',user_a).eq('user_b',user_b).maybeSingle();
+  let thread=ex;
+  if(!thread){
+    const {data,error}=await sb.from('dm_threads').insert({workspace_id:S.currentWs.id,user_a,user_b}).select().single();
+    if(error){alert(error.message);return;}
+    thread=data;
+  }
+  await loadDmThreads();
+  openDmThread(thread.id);
+}
+
+/* ========== DMs ========== */
+async function loadDmThreads(){
+  const me=S.profile.id;
+  const {data}=await sb.from('dm_threads').select('*').eq('workspace_id',S.currentWs.id).or(`user_a.eq.${me},user_b.eq.${me}`);
+  S.dmThreads=[];
+  for(const t of (data||[])){
+    const oid=t.user_a===me?t.user_b:t.user_a;
+    const other=S.members.find(m=>m.id===oid)||(await sb.from('profiles').select('*').eq('id',oid).single()).data;
+    S.dmThreads.push({thread:t,other});
+  }
+  renderDmList();
+}
+
+function renderDmList(){
+  const w=$('dm-list');
+  if(!S.dmThreads.length){w.innerHTML='<div class="empty-state">No chats yet.<br>Search a member above to start.</div>';return;}
+  w.innerHTML=S.dmThreads.map(d=>`
+    <div class="list-row" onclick="openDmThread('${d.thread.id}')">
+      <div class="list-avatar">${presenceDotHTML(d.other?.id)}<img src="${esc(d.other?.avatar_url||dicebear(d.other?.username))}"></div>
+      <div class="list-meta">
+        <div class="list-name">${esc(d.other?.display_name||d.other?.username||'Unknown')}</div>
+        <div class="list-preview">@${esc(d.other?.username||'')}</div>
+      </div>
+      ${d._unread?'<div class="list-unread-dot"></div>':''}
+    </div>`).join('');
+}
+
+/* ---- NEW: build a { all, repliesMap, top } index out of a flat message list ---- */
+function buildMsgIndex(list){
+  const repliesMap={};
+  list.forEach(m=>{ if(m.parent_id){ (repliesMap[m.parent_id]=repliesMap[m.parent_id]||[]).push(m); } });
+  const top=list.filter(m=>!m.parent_id);
+  return {all:list, repliesMap, top};
+}
+
+async function refreshDmThread(threadId){
+  // NEW: paginated load — fetches only S.dmLoadedCount (+1 extra to detect
+  // if there are older messages left) newest-first, then reverses back into
+  // chronological order for display. Scrolling to the top of the thread
+  // calls loadOlderDm(), which bumps dmLoadedCount by 50 and calls this again.
+  const fetchLimit = S.dmLoadedCount + 1;
+  const {data:msgsDesc}=await sb.from('dm_messages')
+    .select('*, profiles(username,display_name,avatar_url)')
+    .eq('thread_id',threadId).order('created_at',{ascending:false}).limit(fetchLimit);
+  let rows = msgsDesc||[];
+  S.dmHasMore = rows.length > S.dmLoadedCount;
+  if(S.dmHasMore) rows = rows.slice(0, S.dmLoadedCount);
+  const msgs = rows.slice().reverse();
+  S.dmMsgCache = buildMsgIndex(msgs||[]);
+  const topIds = S.dmMsgCache.top.map(m=>m.id);
+  const reactionsMap = await loadReactionsMap('dm', topIds);
+  const list = S.dmMsgCache.top.map(m=>({...m,_replyCount:(S.dmMsgCache.repliesMap[m.id]||[]).length,_reactions:reactionsMap[m.id]||{}}));
+  renderMsgs('dm-thread-scroll', list, false, 'dm');
+  if($('thread-modal').classList.contains('open') && S.threadType==='dm') openThread('dm', S.threadParentId);
+}
+
+async function openDmThread(threadId){
+  teardownDmThreadChannels(); // NEW: close previous thread's live subs first
+  S.dmLoadedCount = 50; S.dmHasMore = false; // NEW: reset pagination window for the newly opened thread
+  const entry=S.dmThreads.find(d=>d.thread.id===threadId);
+  S.activeDm=entry;
+  $('dm-list-pane').style.display='none';
+  $('dm-thread').classList.add('open');
+  updateFabVisibility(); // NEW: hide mobile FAB now that we're inside a DM thread
+  $('dm-thread-title').innerHTML=esc(entry.other?.display_name||entry.other?.username||'Chat')+'<span class="thread-title-dot" id="dm-thread-online"></span>';
+  updateDmThreadPresenceDot(); // NEW: reflect current presence immediately
+
+  await refreshDmThread(threadId);
+  await markDmRead(threadId);
+  refreshUnreadBadges();
+
+  const ch=sb.channel('dm:'+threadId)
+    .on('postgres_changes',{event:'*',schema:'public',table:'dm_messages',filter:`thread_id=eq.${threadId}`},
+      p=>{ if(S.activeDm?.thread.id===threadId){ if(p.eventType==='INSERT') S.dmLoadedCount++; refreshDmThread(threadId); markDmRead(threadId); } refreshUnreadBadges(); })
+    .on('postgres_changes',{event:'*',schema:'public',table:'message_reactions',filter:`message_type=eq.dm`},
+      ()=>{ if(S.activeDm?.thread.id===threadId) refreshDmThread(threadId); })
+    .subscribe();
+  S.realtimeSubs.push(ch);
+  S.dmThreadChannel=ch; // NEW: track so it can be torn down later
+  setupTypingChannel('dm', threadId);
+}
+
+function closeDmThread(){
+  $('dm-list-pane').style.display='flex';
+  $('dm-thread').classList.remove('open');
+  updateFabVisibility(); // NEW: show mobile FAB again now that the thread is closed
+  S.activeDm=null;
+  cancelReply('dm');
+  teardownDmThreadChannels(); // NEW: don't leave subs running after close
+}
+
+async function sendDmMessage(){
+  const inp=$('dm-input'), content=inp.value.trim();
+  const att=S.pendingAttachment['dm']; // NEW
+  if((!content && !att)||!S.activeDm) return;
+  inp.value='';
+  const payload={thread_id:S.activeDm.thread.id,sender_id:S.profile.id,content};
+  if(S.replyTarget?.type==='dm') payload.parent_id=S.replyTarget.id;
+  if(att){ payload.attachment_url=att.url; payload.attachment_type=att.type; payload.attachment_name=att.name; } // NEW
+  cancelReply('dm');
+  cancelAttachment('dm'); // NEW
+  const {error}=await sb.from('dm_messages').insert(payload);
+  if(error) alert(error.message);
+}
+
+/* ========== CHANNELS ========== */
+async function loadChannels(){
+  // fetch all channels in workspace where I'm a member
+  const {data:myMems}=await sb.from('channel_members').select('channel_id').eq('user_id',S.profile.id);
+  const myIds=(myMems||[]).map(r=>r.channel_id);
+  const {data}=await sb.from('channels').select('*').eq('workspace_id',S.currentWs.id).order('created_at');
+  // NEW: the workspace owner has owner-level power in every channel, so they
+  // see every channel here (not just ones they've formally joined). Everyone
+  // else still only sees channels they're a member of.
+  S.channels = (S.currentWs.myRole==='owner') ? (data||[]) : (data||[]).filter(c=>myIds.includes(c.id));
+  renderChannelList();
+}
+
+function renderChannelList(){
+  const w=$('channel-list');
+  if(!S.channels.length){
+    w.innerHTML='<div class="empty-state">No channels yet.<br>Create one to get started.</div>';
+    return;
+  }
+  w.innerHTML=S.channels.map(c=>`
+    <div class="list-row" onclick="openChannelThread('${c.id}')">
+      <div class="list-avatar" style="color:#a855f7;font-weight:900;font-size:18px;">#</div>
+      <div class="list-meta"><div class="list-name">${esc(c.name)}</div></div>
+      ${c._unread?'<div class="list-unread-dot"></div>':''}
+    </div>`).join('');
+}
+
+function openNewChannel(){ $('newchannel-modal').classList.add('open'); }
+function closeNewChannel(){ $('newchannel-modal').classList.remove('open'); hideErr('newchannel-error'); $('newchannel-name').value=''; $('newchannel-private').checked=false; }
+
+async function createChannel(){
+  const name=$('newchannel-name').value.trim().toLowerCase().replace(/\s+/g,'-');
+  if(!name) return;
+  const is_private = $('newchannel-private').checked; // NEW: private channels are hidden from global search/join
+  const {data,error}=await sb.from('channels').insert({workspace_id:S.currentWs.id,name,created_by:S.profile.id,is_private}).select().single();
+  if(error){showErr('newchannel-error',error.message);return;}
+  // NEW: make the creator the channel's 'owner' in channel_members (role system)
+  try{ await sb.from('channel_members').upsert({channel_id:data.id,user_id:S.profile.id,role:'owner',added_by:S.profile.id},{onConflict:'channel_id,user_id'}); }catch(_e){}
+  closeNewChannel();
+  $('newchannel-private').checked=false;
+  await loadChannels();
+  openChannelThread(data.id);
+}
+
+/* ---- NEW: pull messages + polls, merge chronologically, render ---- */
+async function refreshChannelThread(channelId){
+  // NEW: paginated load — fetches only S.channelLoadedCount (+1 extra to
+  // detect older messages) newest-first, reversed into chronological order.
+  // Scrolling to the top calls loadOlderChannel(), which bumps
+  // channelLoadedCount by 50 and calls this again.
+  const fetchLimit = S.channelLoadedCount + 1;
+  const {data:msgsDesc}=await sb.from('channel_messages')
+    .select('*, profiles(username,display_name,avatar_url)')
+    .eq('channel_id',channelId).order('created_at',{ascending:false}).limit(fetchLimit);
+  let rows = msgsDesc||[];
+  S.channelHasMore = rows.length > S.channelLoadedCount;
+  if(S.channelHasMore) rows = rows.slice(0, S.channelLoadedCount);
+  const msgs = rows.slice().reverse();
+  S.channelMsgCache = buildMsgIndex(msgs||[]);
+
+  const {data:polls}=await sb.from('polls')
+    .select('*, poll_options(*, poll_votes(user_id))')
+    .eq('channel_id',channelId).order('created_at');
+  S.channelPolls = polls||[];
+
+  const topIds = S.channelMsgCache.top.map(m=>m.id);
+  const reactionsMap = await loadReactionsMap('channel', topIds);
+
+  const items = [
+    ...S.channelMsgCache.top.map(m=>({...m,_replyCount:(S.channelMsgCache.repliesMap[m.id]||[]).length,_reactions:reactionsMap[m.id]||{},_kind:'msg'})),
+    ...S.channelPolls.map(p=>({...p,_kind:'poll'}))
+  ].sort((a,b)=> new Date(a.created_at)-new Date(b.created_at));
+
+  const el=$('channel-thread-scroll');
+  el.innerHTML = items.map(it => it._kind==='poll' ? pollHTML(it) : msgHTML(it,true,{type:'channel'})).join('');
+  el.scrollTop = el.scrollHeight;
+
+  updatePinnedBanner();
+  if($('thread-modal').classList.contains('open') && S.threadType==='channel') openThread('channel', S.threadParentId);
+}
+
+async function openChannelThread(id){
+  teardownChannelThreadChannels(); // NEW: close previous channel's live subs first
+  S.channelLoadedCount = 50; S.channelHasMore = false; // NEW: reset pagination window for the newly opened channel
+  S.activeChannel=S.channels.find(c=>c.id===id);
+  $('channel-list-pane').style.display='none';
+  $('channel-thread').classList.add('open');
+  updateFabVisibility(); // NEW: hide mobile FAB now that we're inside a channel thread
+  $('channel-thread-title').textContent='#'+S.activeChannel.name;
+
+  // load channel members
+  const {data:cmRows}=await sb.from('channel_members').select('user_id, role, muted, profiles(id,username,display_name,avatar_url)').eq('channel_id',id);
+  S.channelMembers=(cmRows||[]).map(r=>({...r.profiles, _role:r.role||'member', _muted:!!r.muted})); // NEW: carry role/muted
+
+  // NEW: the workspace owner has owner-level power in every channel — if they
+  // opened a channel they weren't formally a member of, silently grant them
+  // an 'owner' row here so they can moderate it like any other channel.
+  if(S.currentWs.myRole==='owner' && !S.channelMembers.find(m=>m.id===S.profile.id)){
+    await sb.from('channel_members').upsert({channel_id:id,user_id:S.profile.id,role:'owner',added_by:S.profile.id},{onConflict:'channel_id,user_id'});
+    S.channelMembers.push({...S.profile,_role:'owner',_muted:false});
+  }
+
+  await refreshChannelThread(id);
+  await markChannelRead(id);
+  refreshUnreadBadges();
+
+  const ch=sb.channel('ch:'+id)
+    .on('postgres_changes',{event:'*',schema:'public',table:'channel_messages',filter:`channel_id=eq.${id}`},
+      p=>{ if(S.activeChannel?.id===id){ if(p.eventType==='INSERT') S.channelLoadedCount++; refreshChannelThread(id); markChannelRead(id); } refreshUnreadBadges(); })
+    .on('postgres_changes',{event:'*',schema:'public',table:'polls',filter:`channel_id=eq.${id}`},
+      ()=>{ if(S.activeChannel?.id===id) refreshChannelThread(id); })
+    .on('postgres_changes',{event:'*',schema:'public',table:'poll_options'},
+      ()=>{ if(S.activeChannel?.id===id) refreshChannelThread(id); })
+    .on('postgres_changes',{event:'*',schema:'public',table:'poll_votes'},
+      ()=>{ if(S.activeChannel?.id===id) refreshChannelThread(id); })
+    .on('postgres_changes',{event:'*',schema:'public',table:'message_reactions',filter:`message_type=eq.channel`},
+      ()=>{ if(S.activeChannel?.id===id) refreshChannelThread(id); })
+    .subscribe();
+  S.realtimeSubs.push(ch);
+  S.channelThreadChannel=ch; // NEW: track so it can be torn down later
+  setupTypingChannel('channel', id);
+}
+
+function closeChannelThread(){
+  $('channel-list-pane').style.display='flex';
+  $('channel-thread').classList.remove('open');
+  updateFabVisibility(); // NEW: show mobile FAB again now that the thread is closed
+  S.activeChannel=null;
+  cancelReply('channel');
+  $('pinned-banner').classList.remove('show');
+  teardownChannelThreadChannels(); // NEW: don't leave subs running after close
+}
+
+async function sendChannelMessage(){
+  const inp=$('channel-input'), content=inp.value.trim();
+  const att=S.pendingAttachment['channel']; // NEW
+  if((!content && !att)||!S.activeChannel) return;
+  const myEntry=S.channelMembers.find(m=>m.id===S.profile.id); // NEW: mute check
+  if(myEntry?._muted){ alert('You are muted in this channel and cannot send messages.'); return; } // NEW
+  inp.value='';
+  $('mention-dropdown').classList.remove('open');
+  const payload={channel_id:S.activeChannel.id,workspace_id:S.currentWs.id,sender_id:S.profile.id,content};
+  if(S.replyTarget?.type==='channel') payload.parent_id=S.replyTarget.id;
+  if(att){ payload.attachment_url=att.url; payload.attachment_type=att.type; payload.attachment_name=att.name; } // NEW
+  cancelReply('channel');
+  cancelAttachment('channel'); // NEW
+  const {error}=await sb.from('channel_messages').insert(payload);
+  if(error) alert(error.message);
+}
+
+/* --- channel member management --- */
+function openChannelMembers(){
+  renderChannelMembersList();
+  $('channel-members-modal').classList.add('open');
+}
+function closeChannelMembers(){ $('channel-members-modal').classList.remove('open'); hideErr('addmember-error'); $('addmember-username').value=''; }
+
+function renderChannelMembersList(){
+  // NEW: role-aware rendering — only the channel *owner* can change roles, mute, or remove someone.
+  // Admins are a real role now, but per spec they are explicitly NOT allowed to remove/mute members.
+  const myRole = (S.channelMembers.find(m=>m.id===S.profile.id)||{})._role;
+  const isChannelOwner = myRole==='owner' || S.currentWs.myRole==='owner'; // NEW: workspace owner = owner in every channel
+  $('channel-members-list').innerHTML=S.channelMembers.map(m=>`
+    <div class="member-chip" style="justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="member-chip-av">${presenceDotHTML(m.id)}<img src="${esc(m.avatar_url||dicebear(m.username))}"></div>
+        <div>
+          <div class="member-chip-name">${esc(m.display_name||m.username)}${m._role==='owner'?'<span class="role-badge owner">owner</span>':''}${m._role==='admin'?'<span class="role-badge admin">admin</span>':''}${m._muted?'<span class="role-badge muted">muted</span>':''}</div>
+          <div style="font-size:11px;color:#94a3b8">@${esc(m.username)}</div>
+        </div>
+      </div>
+      ${isChannelOwner && m.id!==S.profile.id ? `
+        <div class="member-chip-actions">
+          <select class="member-role-select" onchange="setChannelMemberRole('${m.id}',this.value)">
+            <option value="member" ${m._role==='member'||!m._role?'selected':''}>member</option>
+            <option value="admin" ${m._role==='admin'?'selected':''}>admin</option>
+          </select>
+          <span class="member-action-link" style="color:#f59e0b;" onclick="toggleMuteMember('${m.id}',${!!m._muted})">${m._muted?'unmute':'mute'}</span>
+          <span class="member-action-link" style="color:#ef4444;" onclick="removeChannelMember('${m.id}')">remove</span>
+        </div>` : ''}
+    </div>`).join('');
+}
+
+/* NEW: role management — owner-only (admins are intentionally excluded from remove/mute) */
+async function setChannelMemberRole(userId,newRole){
+  const {error}=await sb.from('channel_members').update({role:newRole}).eq('channel_id',S.activeChannel.id).eq('user_id',userId);
+  if(error){alert(error.message);return;}
+  const m=S.channelMembers.find(m=>m.id===userId); if(m) m._role=newRole;
+  renderChannelMembersList();
+}
+async function toggleMuteMember(userId,currentlyMuted){
+  const {error}=await sb.from('channel_members').update({muted:!currentlyMuted}).eq('channel_id',S.activeChannel.id).eq('user_id',userId);
+  if(error){alert(error.message);return;}
+  const m=S.channelMembers.find(m=>m.id===userId); if(m) m._muted=!currentlyMuted;
+  renderChannelMembersList();
+}
+async function removeChannelMember(userId){
+  if(!confirm('Remove this member from the channel?')) return;
+  const {error}=await sb.from('channel_members').delete().eq('channel_id',S.activeChannel.id).eq('user_id',userId);
+  if(error){alert(error.message);return;}
+  S.channelMembers=S.channelMembers.filter(m=>m.id!==userId);
+  renderChannelMembersList();
+}
+
+/* NEW: anyone can leave any channel at any time */
+async function leaveChannel(){
+  if(!S.activeChannel) return;
+  if(!confirm(`Leave #${S.activeChannel.name}?`)) return;
+  const {error}=await sb.from('channel_members').delete().eq('channel_id',S.activeChannel.id).eq('user_id',S.profile.id);
+  if(error){ alert(error.message); return; }
+  closeChannelThread();
+  await loadChannels();
+}
+
+async function addChannelMember(){
+  const uname=$('addmember-username').value.trim().toLowerCase();
+  hideErr('addmember-error');
+  const target=S.members.find(m=>m.username===uname);
+  if(!target){showErr('addmember-error','No workspace member with that username.');return;}
+  if(S.channelMembers.find(m=>m.id===target.id)){showErr('addmember-error','Already in this channel.');return;}
+  const {error}=await sb.from('channel_members').insert({channel_id:S.activeChannel.id,user_id:target.id,added_by:S.profile.id,role:'member'});
+  if(error){showErr('addmember-error',error.message);return;}
+  S.channelMembers.push({...target,_role:'member',_muted:false}); // NEW: keep role/muted fields consistent
+  $('addmember-username').value='';
+  renderChannelMembersList();
+}
+
+/* ========== UPCOMINGS ========== */
+async function loadAnnouncements(){
+  const {data}=await sb.from('announcements')
+    .select('*, profiles(username,display_name,avatar_url)')
+    .eq('workspace_id',S.currentWs.id).order('created_at');
+  renderMsgs('announce-scroll',data||[],false);
+
+  const isOwner=S.currentWs.myRole==='owner';
+  $('announce-composer-wrap').innerHTML = isOwner
+    ? `<div class="composer"><input id="announce-input" placeholder="Post an announcement…" onkeydown="if(event.key==='Enter')sendAnnouncement()"><button onclick="sendAnnouncement()">➤</button></div>`
+    : `<div class="composer-locked">📢 Only the workspace owner can post announcements here.</div>`;
+
+  const ch=sb.channel('ann:'+S.currentWs.id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'announcements',filter:`workspace_id=eq.${S.currentWs.id}`},
+      async p=>{
+        const {data:pr}=await sb.from('profiles').select('*').eq('id',p.new.sender_id).single();
+        appendMsg('announce-scroll',{...p.new,profiles:pr},false);
+      })
+    .subscribe();
+  S.realtimeSubs.push(ch);
+}
+
+async function sendAnnouncement(){
+  const inp=$('announce-input'), content=inp.value.trim();
+  if(!content) return; inp.value='';
+  const {error}=await sb.from('announcements').insert({workspace_id:S.currentWs.id,sender_id:S.profile.id,content});
+  if(error) alert(error.message);
+}
+
+/* ========== MESSAGE RENDERING ========== */
+// showSenderName = true for channels & announcements
+// type = 'dm' | 'channel' | undefined(announcements) — controls which hover actions render
+function renderMsgs(containerId, msgs, showSenderName, type){
+  const el=$(containerId);
+  el.innerHTML=msgs.map(m=>msgHTML(m,showSenderName,{type})).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+function appendMsg(containerId, m, showSenderName, type){
+  const el=$(containerId);
+  el.insertAdjacentHTML('beforeend',msgHTML(m,showSenderName,{type}));
+  el.scrollTop=el.scrollHeight;
+}
+
+/* NEW: highlight @username mentions against known workspace members */
+function highlightMentions(escapedText){
+  return escapedText.replace(/@([a-zA-Z0-9_]+)/g, (match, uname) => {
+    if(uname.toLowerCase()==='here' || uname.toLowerCase()==='channel'){ // NEW: @here / @channel broadcasts
+      return `<span class="mention-tag broadcast">@${esc(uname.toLowerCase())}</span>`;
+    }
+    const found = S.members.find(m=>m.username.toLowerCase()===uname.toLowerCase());
+    return found ? `<span class="mention-tag">@${esc(found.username)}</span>` : match;
+  });
+}
+
+function msgHTML(m, showSenderName, opts){
+  opts = opts||{};
+  const isMe = m.sender_id === S.profile.id;
+  const time  = fmtTime(m.created_at);
+  const sName = m.profiles?.display_name || m.profiles?.username || '';
+  const editedTag = m.edited ? ' <span style="font-size:9.5px;color:#94a3b8;">(edited)</span>' : '';
+  const content = highlightMentions(esc(m.content));
+  const replyCount = m._replyCount ? `<div class="msg-reply-count" onclick="openThread('${opts.type}','${m.id}')">${m._replyCount} repl${m._replyCount===1?'y':'ies'}</div>` : '';
+
+  const canPin = opts.type==='channel';
+  const actions = opts.type ? `<div class="msg-actions">
+      <button class="msg-action-btn" onclick="startReply('${opts.type}','${m.id}')" title="Reply">↩</button>
+      ${canPin ? `<button class="msg-action-btn" onclick="togglePin('${m.id}',${!!m.pinned})" title="Pin">${m.pinned?'📌':'📍'}</button>` : ''}
+      ${isMe ? `<button class="msg-action-btn" onclick="startEdit('${opts.type}','${m.id}')" title="Edit">✎</button>
+      <button class="msg-action-btn" onclick="deleteMsg('${opts.type}','${m.id}')" title="Delete">🗑</button>` : ''}
+    </div>` : '';
+
+  // NEW: persistent pin badge, left corner of the message (only if actually pinned)
+  const pinIndicator = (canPin && m.pinned) ? `<div class="msg-pin-indicator" title="Pinned">📌</div>` : '';
+
+  // NEW: persistent small reaction summary, bottom-left corner (channel also shows counts)
+  const reactionSummary = opts.type ? reactionSummaryHTML(m, opts.type) : '';
+
+  return `<div class="msg-outer" id="msg-${m.id}" data-msg-id="${m.id}" data-msg-type="${opts.type||''}">
+    ${pinIndicator}
+    ${actions}
+    <div class="msg-bubble ${isMe?'is-me':''}" ${opts.type ? `ondblclick="openMsgActionCard('${opts.type}','${m.id}')"` : ''}>
+      <span class="msg-time">${esc(time)}${editedTag}</span>
+      ${content}
+      ${attachmentHTML(m)}
+    </div>
+    ${opts.type ? reactionsHTML(m, opts.type) : ''}
+    ${reactionSummary}
+    ${replyCount}
+    ${showSenderName && !isMe && sName
+      ? `<div class="msg-sender-name">${esc(sName)}</div>` : ''}
+  </div>`;
+}
+
+/* NEW: double-click (or double-tap) a message to reveal its hidden
+   time/pin/edit/delete/reply controls and the reaction picker; double-click
+   again to hide them. */
+function toggleMsgExpanded(id){
+  const outer=$('msg-'+id);
+  if(!outer) return;
+  outer.classList.toggle('expanded');
+}
+
+/* NEW: double-click (or double-tap) a message to open a single card
+   listing everything that used to be scattered around the bubble — time/
+   edited tag, reactions, and reply/pin/edit/delete — so the person picks
+   what to do from one place instead of hunting for tiny scattered icons. */
+let msgCardCtx = null; // { type, id } for the currently-open card
+function openMsgActionCard(type, id){
+  const store = type==='dm' ? S.dmMsgCache : S.channelMsgCache;
+  const msg = store.all.find(m=>m.id===id);
+  if(!msg) return;
+  msgCardCtx = {type, id};
+  const isMe = msg.sender_id === S.profile.id;
+  const canPin = type==='channel';
+
+  $('msg-card-time').textContent = fmtTime(msg.created_at) + (msg.edited ? ' · edited' : '');
+
+  // reactions row — reuses the exact same toggleReaction() logic as before
+  const r = msg._reactions || {};
+  $('msg-card-reactions').innerHTML = REACTION_EMOJIS.map(e=>{
+    const users = r[e]||[];
+    const mine = users.includes(S.profile.id);
+    return `<button class="msg-card-reaction-btn ${mine?'mine':''}" onclick="toggleReaction('${type}','${id}','${e}');closeMsgActionCard();">${e}${users.length?`<span class="rcount">${users.length}</span>`:''}</button>`;
+  }).join('');
+
+  // actions — reuses the exact same startReply/togglePin/startEdit/deleteMsg functions as before
+  let actionsHtml = `<div class="msg-card-action-btn" onclick="closeMsgActionCard();startReply('${type}','${id}');">↩ Reply</div>`;
+  if(canPin){
+    actionsHtml += `<div class="msg-card-action-btn" onclick="togglePin('${id}',${!!msg.pinned});closeMsgActionCard();">${msg.pinned?'📌 Unpin':'📍 Pin'}</div>`;
+  }
+  if(isMe){
+    actionsHtml += `<div class="msg-card-action-btn" onclick="closeMsgActionCard();startEdit('${type}','${id}');">✎ Edit</div>`;
+    actionsHtml += `<div class="msg-card-action-btn danger" onclick="closeMsgActionCard();deleteMsg('${type}','${id}');">🗑 Delete</div>`;
+  }
+  $('msg-card-actions').innerHTML = actionsHtml;
+
+  $('msg-card-modal').classList.add('open');
+}
+function closeMsgActionCard(){
+  $('msg-card-modal').classList.remove('open');
+  msgCardCtx = null;
+}
+
+/* NEW: small always-visible reaction summary shown at the bottom-left
+   corner of a message. DMs show just the emoji; channels also show the
+   count of how many people reacted with it. */
+function reactionSummaryHTML(m, type){
+  const r = m._reactions || {};
+  const chips = REACTION_EMOJIS.map(e=>{
+    const users = r[e]||[];
+    if(!users.length) return '';
+    return `<span class="msg-reaction-summary-chip">${e}${type==='channel'?`<span class="rc-count">${users.length}</span>`:''}</span>`;
+  }).join('');
+  return chips ? `<div class="msg-reaction-summary">${chips}</div>` : '';
+}
+
+/* ========== NEW: EMOJI REACTIONS (❤️ 🤍 🖤 only) ========== */
+const REACTION_EMOJIS = ['❤️','🤍','🖤'];
+
+function reactionsHTML(m, type){
+  const r = m._reactions || {};
+  return `<div class="msg-reactions">${REACTION_EMOJIS.map(e=>{
+    const users = r[e]||[];
+    const mine = users.includes(S.profile.id);
+    const count = users.length;
+    return `<button class="reaction-btn ${mine?'mine':''}" onclick="toggleReaction('${type}','${m.id}','${e}')">${e}${count?`<span class="reaction-count">${count}</span>`:''}</button>`;
+  }).join('')}</div>`;
+}
+
+async function loadReactionsMap(type, messageIds){
+  if(!messageIds || !messageIds.length) return {};
+  const {data} = await sb.from('message_reactions').select('*').eq('message_type',type).in('message_id',messageIds);
+  const map={};
+  (data||[]).forEach(row=>{
+    map[row.message_id] = map[row.message_id] || {};
+    map[row.message_id][row.emoji] = map[row.message_id][row.emoji] || [];
+    map[row.message_id][row.emoji].push(row.user_id);
+  });
+  return map;
+}
+
+async function toggleReaction(type, messageId, emoji){
+  const {data:existing} = await sb.from('message_reactions').select('id')
+    .eq('message_type',type).eq('message_id',messageId).eq('emoji',emoji).eq('user_id',S.profile.id).maybeSingle();
+  if(existing){
+    const {error}=await sb.from('message_reactions').delete().eq('id',existing.id);
+    if(error) alert(error.message);
+  } else {
+    const {error}=await sb.from('message_reactions').insert({message_type:type,message_id:messageId,emoji,user_id:S.profile.id});
+    if(error) alert(error.message);
+  }
+}
+
+/* ========== NEW: EDIT / DELETE OWN MESSAGES ========== */
+function startEdit(type,id){
+  const store = type==='dm'?S.dmMsgCache:S.channelMsgCache;
+  const msg = store.all.find(m=>m.id===id);
+  if(!msg) return;
+  const outer=$('msg-'+id); if(!outer) return;
+  const bubble=outer.querySelector('.msg-bubble');
+  bubble.innerHTML = `<input class="edit-input" value="${esc(msg.content)}" onkeydown="if(event.key==='Enter')saveEdit('${type}','${id}');if(event.key==='Escape')${type==='dm'?'refreshDmThread(S.activeDm.thread.id)':'refreshChannelThread(S.activeChannel.id)'}">`;
+  const inp=bubble.querySelector('.edit-input'); inp.focus(); inp.setSelectionRange(inp.value.length,inp.value.length);
+}
+async function saveEdit(type,id){
+  const outer=$('msg-'+id); if(!outer) return;
+  const inp=outer.querySelector('.edit-input'); if(!inp) return;
+  const val=inp.value.trim(); if(!val) return;
+  const table = type==='dm'?'dm_messages':'channel_messages';
+  const {error}=await sb.from(table).update({content:val, edited:true}).eq('id',id);
+  if(error) alert(error.message);
+}
+async function deleteMsg(type,id){
+  if(!confirm('Delete this message?')) return;
+  const table = type==='dm'?'dm_messages':'channel_messages';
+  const {error}=await sb.from(table).delete().eq('id',id);
+  if(error) alert(error.message);
+}
+
+/* ========== NEW: REPLIES / THREADING ========== */
+function startReply(type,id){
+  const store = type==='dm'?S.dmMsgCache:S.channelMsgCache;
+  const msg = store.all.find(m=>m.id===id);
+  if(!msg) return;
+  S.replyTarget = {type,id};
+  const barId = type==='dm'?'dm-reply-preview':'channel-reply-preview';
+  const bar=$(barId);
+  bar.style.display='flex';
+  bar.innerHTML = `<div class="reply-quote" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">↩ ${esc((msg.content||'').slice(0,60))}</div><span onclick="cancelReply('${type}')" style="cursor:pointer;color:#94a3b8;padding:0 8px;">✕</span>`;
+}
+function cancelReply(type){
+  if(S.replyTarget?.type===type) S.replyTarget=null;
+  const barId = type==='dm'?'dm-reply-preview':'channel-reply-preview';
+  const bar=$(barId); if(bar){ bar.style.display='none'; bar.innerHTML=''; }
+}
+
+function openThread(type,msgId){
+  S.threadType=type; S.threadParentId=msgId;
+  const store = type==='dm'?S.dmMsgCache:S.channelMsgCache;
+  const parent = store.all.find(m=>m.id===msgId);
+  if(!parent) return;
+  const replies = store.repliesMap[msgId]||[];
+  $('thread-parent-preview').innerHTML = `<div class="reply-quote" style="white-space:normal;"><strong>${esc(parent.profiles?.display_name||parent.profiles?.username||'')}</strong>: ${esc(parent.content)}</div>`;
+  $('thread-replies-list').innerHTML = replies.length ? replies.map(r=>`
+    <div style="margin-bottom:10px;font-size:13px;">
+      <strong>${esc(r.profiles?.display_name||r.profiles?.username||'')}:</strong> ${highlightMentions(esc(r.content))}
+      <div style="font-size:10px;color:#94a3b8;">${esc(fmtTime(r.created_at))}</div>
+    </div>`).join('') : '<div class="empty-state">No replies yet.</div>';
+  $('thread-modal').classList.add('open');
+}
+function closeThreadModal(){ $('thread-modal').classList.remove('open'); S.threadType=null; S.threadParentId=null; $('thread-reply-input').value=''; }
+
+async function sendThreadReply(){
+  const inp=$('thread-reply-input'); const content=inp.value.trim();
+  if(!content||!S.threadParentId) return;
+  inp.value='';
+  const table = S.threadType==='dm' ? 'dm_messages' : 'channel_messages';
+  const payload = S.threadType==='dm'
+    ? {thread_id:S.activeDm.thread.id, sender_id:S.profile.id, content, parent_id:S.threadParentId}
+    : {channel_id:S.activeChannel.id, workspace_id:S.currentWs.id, sender_id:S.profile.id, content, parent_id:S.threadParentId};
+  const {error} = await sb.from(table).insert(payload);
+  if(error) alert(error.message);
+}
+
+/* ========== NEW: PIN MESSAGES (channels) ========== */
+async function togglePin(id, currentlyPinned){
+  const {error} = await sb.from('channel_messages').update({pinned: !currentlyPinned}).eq('id',id);
+  if(error) alert(error.message);
+}
+function updatePinnedBanner(){
+  const pinned = (S.channelMsgCache.all||[]).filter(m=>m.pinned);
+  const banner=$('pinned-banner');
+  if(pinned.length){
+    banner.classList.add('show');
+    $('pinned-banner-text').textContent = pinned.length===1 ? pinned[0].content.slice(0,60) : `${pinned.length} pinned messages`;
+  } else {
+    banner.classList.remove('show');
+  }
+}
+function scrollToPinned(){
+  const pinned=(S.channelMsgCache.all||[]).filter(m=>m.pinned);
+  if(!pinned.length) return;
+  const el=$('msg-'+pinned[pinned.length-1].id);
+  if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+/* ========== NEW: @MENTIONS AUTOCOMPLETE (channel composer) ========== */
+function onChannelInputChange(){
+  notifyTyping('channel', S.activeChannel && S.activeChannel.id);
+  const inp=$('channel-input');
+  const val=inp.value;
+  const match = val.match(/@([a-zA-Z0-9_]*)$/);
+  const dd=$('mention-dropdown');
+  if(match && S.channelMembers.length){
+    const q=match[1].toLowerCase();
+    // NEW: @here / @channel broadcast suggestions, shown above normal member matches
+    const specials=['here','channel'].filter(s=>s.startsWith(q)).map(s=>({username:s,_special:true,_desc: s==='here'?'notify online members':'notify everyone in this channel'}));
+    const hits=[...specials, ...S.channelMembers.filter(m=>m.username.toLowerCase().startsWith(q))];
+    if(hits.length){
+      dd.innerHTML=hits.map(m=>m._special
+        ? `<div class="mention-item mention-item-special" onclick="insertMention('${m.username}')"><span style="width:22px;height:22px;border-radius:6px;background:#ef4444;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">@</span>@${m.username} <span style="color:#94a3b8;font-size:11px;">— ${m._desc}</span></div>`
+        : `<div class="mention-item" onclick="insertMention('${esc(m.username)}')"><img src="${esc(m.avatar_url||dicebear(m.username))}">@${esc(m.username)}</div>`
+      ).join('');
+      dd.classList.add('open');
+      return;
+    }
+  }
+  dd.classList.remove('open');
+}
+function insertMention(username){
+  const inp=$('channel-input');
+  inp.value = inp.value.replace(/@([a-zA-Z0-9_]*)$/, '@'+username+' ');
+  $('mention-dropdown').classList.remove('open');
+  inp.focus();
+}
+
+/* ========== NEW: TYPING INDICATORS (Presence) ========== */
+function setupTypingChannel(type,id){
+  if(!id) return;
+  // NEW: was keyed by type+':'+id in S.typingChannels forever (never removed,
+  // so every distinct thread ever opened kept its presence channel alive in
+  // the background). Now uses the single active slot per type, which
+  // teardownDmThreadChannels/teardownChannelThreadChannels clear on close.
+  const slotKey = type==='dm' ? 'dmTypingChannel' : 'channelTypingChannel';
+  if(S[slotKey]) return; // already set up for the currently-open thread
+  const key=type+':'+id;
+  const presenceCh = sb.channel('typing-'+key, {config:{presence:{key:S.profile.id}}});
+  presenceCh.on('presence',{event:'sync'},()=>{
+    const state=presenceCh.presenceState();
+    const others=Object.keys(state).filter(uid=>uid!==S.profile.id && state[uid][0]?.typing);
+    const names=others.map(uid=>{
+      const p=S.members.find(m=>m.id===uid);
+      return p?.display_name||p?.username||'Someone';
+    });
+    const el=$(type==='dm'?'dm-typing':'channel-typing');
+    if(el) el.textContent = names.length ? `${names.join(', ')} ${names.length===1?'is':'are'} typing…` : '';
+  }).subscribe(async status=>{
+    if(status==='SUBSCRIBED') await presenceCh.track({typing:false});
+  });
+  S[slotKey]=presenceCh;
+  S.realtimeSubs.push(presenceCh);
+}
+let typingTimeout;
+function notifyTyping(type,id){
+  if(!id) return;
+  const ch = type==='dm' ? S.dmTypingChannel : S.channelTypingChannel; // NEW
+  if(!ch) return;
+  ch.track({typing:true});
+  clearTimeout(typingTimeout);
+  typingTimeout=setTimeout(()=>ch.track({typing:false}),2500);
+}
+
+/* ========== NEW: POLLS ========== */
+function openPollCreate(){ if(!S.activeChannel) return; $('poll-modal').classList.add('open'); }
+function closePollCreate(){
+  $('poll-modal').classList.remove('open'); hideErr('poll-error');
+  $('poll-question').value='';
+  $('poll-options-wrap').innerHTML = `<div class="modal-field"><input class="poll-option-input" placeholder="Option 1"></div><div class="modal-field"><input class="poll-option-input" placeholder="Option 2"></div>`;
+}
+function addPollOptionField(){
+  const wrap=$('poll-options-wrap');
+  const n=wrap.children.length+1;
+  const div=document.createElement('div'); div.className='modal-field';
+  div.innerHTML=`<input class="poll-option-input" placeholder="Option ${n}">`;
+  wrap.appendChild(div);
+}
+async function submitPoll(){
+  hideErr('poll-error');
+  const question=$('poll-question').value.trim();
+  const opts=[...document.querySelectorAll('.poll-option-input')].map(i=>i.value.trim()).filter(Boolean);
+  if(!question||opts.length<2){ showErr('poll-error','Add a question and at least 2 options.'); return; }
+  const {data:poll,error}=await sb.from('polls').insert({channel_id:S.activeChannel.id,workspace_id:S.currentWs.id,created_by:S.profile.id,question}).select().single();
+  if(error){ showErr('poll-error',error.message); return; }
+  const rows=opts.map((t,i)=>({poll_id:poll.id,option_text:t,position:i}));
+  const {error:oe}=await sb.from('poll_options').insert(rows);
+  if(oe){ showErr('poll-error',oe.message); return; }
+  closePollCreate();
+}
+function pollHTML(p){
+  const totalVotes = p.poll_options.reduce((s,o)=>s+o.poll_votes.length,0);
+  const myVote = p.poll_options.find(o=>o.poll_votes.some(v=>v.user_id===S.profile.id));
+  return `<div class="msg-outer"><div class="poll-card">
+    <div class="poll-question">📊 ${esc(p.question)}</div>
+    ${p.poll_options.sort((a,b)=>a.position-b.position).map(o=>{
+      const pct = totalVotes ? Math.round(o.poll_votes.length/totalVotes*100) : 0;
+      const voted = myVote?.id===o.id;
+      return `<div class="poll-option" onclick="voteOnPoll('${p.id}','${o.id}')">
+        <div class="poll-option-bar" style="width:${pct}%"></div>
+        <div class="poll-option-label"><span>${voted?'✓ ':''}${esc(o.option_text)}</span><span>${pct}%</span></div>
+      </div>`;
+    }).join('')}
+    <div class="poll-meta">${totalVotes} vote${totalVotes===1?'':'s'}</div>
+  </div></div>`;
+}
+async function voteOnPoll(pollId, optionId){
+  const {error}=await sb.from('poll_votes').upsert({poll_id:pollId,option_id:optionId,user_id:S.profile.id});
+  if(error) alert(error.message);
+}
+
+/* ========== NEW: UNREAD INDICATORS ========== */
+async function markDmRead(threadId){
+  await sb.from('dm_read_state').upsert({thread_id:threadId,user_id:S.profile.id,last_read_at:new Date().toISOString()});
+}
+async function markChannelRead(channelId){
+  await sb.from('channel_read_state').upsert({channel_id:channelId,user_id:S.profile.id,last_read_at:new Date().toISOString()});
+}
+function setBadge(id,count){
+  const el=$(id); if(!el) return;
+  if(count>0){ el.style.display='flex'; el.textContent=count>9?'9+':count; } else { el.style.display='none'; }
+}
+async function refreshUnreadBadges(){
+  if(!S.currentWs) return;
+
+  // NEW: was 2 queries PER thread/channel run one-at-a-time (N+1 pattern).
+  // Now it's 4 fixed queries total no matter how many threads/channels
+  // there are, using .in() to fetch everything in one round trip each,
+  // then reducing to "most recent message per thread/channel" client-side.
+  // Same exact _unread results and badge counts as before.
+  const dmIds = S.dmThreads.map(d=>d.thread.id);
+  const lastDmMap = {}, readDmMap = {};
+  if(dmIds.length){
+    const {data:allMsgs} = await sb.from('dm_messages').select('thread_id,created_at').in('thread_id',dmIds);
+    (allMsgs||[]).forEach(m=>{ if(!lastDmMap[m.thread_id] || new Date(m.created_at) > new Date(lastDmMap[m.thread_id])) lastDmMap[m.thread_id]=m.created_at; });
+    const {data:allRead} = await sb.from('dm_read_state').select('thread_id,last_read_at').in('thread_id',dmIds).eq('user_id',S.profile.id);
+    (allRead||[]).forEach(r=>{ readDmMap[r.thread_id]=r.last_read_at; });
+  }
+  let dmUnread=0;
+  S.dmThreads.forEach(d=>{
+    const last=lastDmMap[d.thread.id], rs=readDmMap[d.thread.id];
+    d._unread = !!last && (!rs || new Date(last) > new Date(rs)) && S.activeDm?.thread.id!==d.thread.id;
+    if(d._unread) dmUnread++;
+  });
+
+  const chIds = S.channels.map(c=>c.id);
+  const lastChMap = {}, readChMap = {};
+  if(chIds.length){
+    const {data:allMsgs} = await sb.from('channel_messages').select('channel_id,created_at').in('channel_id',chIds);
+    (allMsgs||[]).forEach(m=>{ if(!lastChMap[m.channel_id] || new Date(m.created_at) > new Date(lastChMap[m.channel_id])) lastChMap[m.channel_id]=m.created_at; });
+    const {data:allRead} = await sb.from('channel_read_state').select('channel_id,last_read_at').in('channel_id',chIds).eq('user_id',S.profile.id);
+    (allRead||[]).forEach(r=>{ readChMap[r.channel_id]=r.last_read_at; });
+  }
+  let chUnread=0;
+  S.channels.forEach(c=>{
+    const last=lastChMap[c.id], rs=readChMap[c.id];
+    c._unread = !!last && (!rs || new Date(last) > new Date(rs)) && S.activeChannel?.id!==c.id;
+    if(c._unread) chUnread++;
+  });
+
+  setBadge('badge-messages', dmUnread);
+  setBadge('badge-channels', chUnread);
+  setBadge('badge-messages-fab', dmUnread); // NEW: mirror badge onto mobile FAB button
+  setBadge('badge-channels-fab', chUnread); // NEW: mirror badge onto mobile FAB button
+  renderDmList();
+  renderChannelList();
+}
+function setupGlobalUnreadListener(){
+  const ch = sb.channel('unread:'+S.currentWs.id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'dm_messages'}, ()=>refreshUnreadBadges())
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'channel_messages'}, ()=>refreshUnreadBadges())
+    .subscribe();
+  S.realtimeSubs.push(ch);
+}
+
+/* ========== NEW: INFINITE SCROLL-BACK (load 50 at a time, more on scroll-to-top) ========== */
+// Only 50 most recent messages load when a chat/channel is opened (see
+// refreshDmThread/refreshChannelThread + dmLoadedCount/channelLoadedCount).
+// Scrolling near the top of the thread calls these, which grow the loaded
+// window by 50 and re-fetch — while keeping the scroll position steady so
+// the view doesn't jump.
+async function loadOlderDm(){
+  if(!S.activeDm || S.dmLoadingMore || !S.dmHasMore) return;
+  S.dmLoadingMore = true;
+  S.dmLoadedCount += 50;
+  const el = $('dm-thread-scroll');
+  const prevHeight = el.scrollHeight, prevTop = el.scrollTop;
+  await refreshDmThread(S.activeDm.thread.id);
+  el.scrollTop = el.scrollHeight - prevHeight + prevTop;
+  S.dmLoadingMore = false;
+}
+async function loadOlderChannel(){
+  if(!S.activeChannel || S.channelLoadingMore || !S.channelHasMore) return;
+  S.channelLoadingMore = true;
+  S.channelLoadedCount += 50;
+  const el = $('channel-thread-scroll');
+  const prevHeight = el.scrollHeight, prevTop = el.scrollTop;
+  await refreshChannelThread(S.activeChannel.id);
+  el.scrollTop = el.scrollHeight - prevHeight + prevTop;
+  S.channelLoadingMore = false;
+}
+$('dm-thread-scroll').addEventListener('scroll', ()=>{
+  if($('dm-thread-scroll').scrollTop < 60) loadOlderDm();
+});
+$('channel-thread-scroll').addEventListener('scroll', ()=>{
+  if($('channel-thread-scroll').scrollTop < 60) loadOlderChannel();
+});
+
+/* ========== NEW: PRESENCE (online/offline, workspace-wide) ========== */
+function presenceDotHTML(userId){
+  const online = S.onlineUsers && S.onlineUsers.has(userId);
+  return `<span class="presence-dot ${online?'online':''}"></span>`;
+}
+function setupPresenceChannel(){
+  if(!S.currentWs) return;
+  const ch = sb.channel('presence:'+S.currentWs.id, {config:{presence:{key:S.profile.id}}});
+  ch.on('presence',{event:'sync'},()=>{
+    const state = ch.presenceState();
+    S.onlineUsers = new Set(Object.keys(state));
+    renderDmList();
+    renderChannelList();
+    if($('search-results').classList.contains('open')) onDmSearch();
+    if($('channel-members-modal').classList.contains('open')) renderChannelMembersList();
+    if($('wsmembers-modal').classList.contains('open')) renderWsMembersList();
+    updateDmThreadPresenceDot();
+  }).subscribe(async status=>{
+    if(status==='SUBSCRIBED') await ch.track({online:true});
+  });
+  S.realtimeSubs.push(ch);
+  S.presenceChannel=ch;
+}
+function updateDmThreadPresenceDot(){
+  const dot=$('dm-thread-online');
+  if(!dot || !S.activeDm) return;
+  const online = S.onlineUsers && S.onlineUsers.has(S.activeDm.other?.id);
+  dot.classList.toggle('online', !!online);
+}
+
+/* ========== NEW: SWIPE-RIGHT-TO-REPLY (touch) ========== */
+(function setupSwipeReply(){
+  let swipe = null;
+  document.addEventListener('touchstart', e=>{
+    const bubble = e.target.closest('.msg-bubble');
+    const outer = bubble && bubble.closest('.msg-outer');
+    if(!outer || !outer.dataset.msgType) return;
+    const t = e.touches[0];
+    swipe = { outer, id: outer.dataset.msgId, type: outer.dataset.msgType, startX:t.clientX, startY:t.clientY };
+  }, {passive:true});
+  document.addEventListener('touchmove', e=>{
+    if(!swipe) return;
+    const t=e.touches[0];
+    const dx=t.clientX-swipe.startX, dy=t.clientY-swipe.startY;
+    if(Math.abs(dy)<40 && dx>0){
+      swipe.outer.style.transform = `translateX(${Math.min(dx,64)}px)`;
+    }
+  }, {passive:true});
+  document.addEventListener('touchend', e=>{
+    if(!swipe) return;
+    const t = e.changedTouches && e.changedTouches[0];
+    const dx = t ? (t.clientX-swipe.startX) : 0;
+    swipe.outer.style.transform='';
+    if(dx>60) startReply(swipe.type, swipe.id);
+    swipe=null;
+  }, {passive:true});
+})();
+
+/* ========== NAV ========== */
+function switchView(v){
+  document.querySelectorAll('.view-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  $(`view-${v}`).classList.add('active');
+  $(`nav-${v}`).classList.add('active');
+  document.querySelectorAll('.mobile-fab-item').forEach(b=>b.classList.toggle('active', b.dataset.view===v)); // NEW: mirror active state onto the mobile FAB icons
+  updateFabVisibility(); // NEW: hide the FAB automatically when entering the upcomings view, show it otherwise
+}
+
+/* ========== PROFILE MODAL ========== */
+function openProfileModal(){
+  $('profile-displayname').value = S.profile.display_name||'';
+  $('profile-phone').value       = S.profile.phone||'';
+  $('profile-birthday').value    = S.profile.birthday||'';
+  $('profile-username-show').textContent = '@'+S.profile.username;
+  $('profile-avatar-preview').src = S.profile.avatar_url||dicebear(S.profile.username);
+  $('profile-modal').classList.add('open');
+}
+function closeProfileModal(){ $('profile-modal').classList.remove('open'); }
+
+async function saveProfile(){
+  const display_name=$('profile-displayname').value.trim();
+  const phone=$('profile-phone').value.trim();
+  const birthday=$('profile-birthday').value||null;
+  const {error}=await sb.from('profiles').update({display_name,phone,birthday}).eq('id',S.profile.id);
+  if(error){alert(error.message);return;}
+  Object.assign(S.profile,{display_name,phone,birthday});
+  closeProfileModal();
+}
+
+/* ---- 200KB avatar limit added below, rest of upload logic unchanged ---- */
+async function handleAvatarUpload(e){
+  const file=e.target.files[0]; if(!file) return;
+  const MAX_BYTES = 200*1024;
+  if(file.size > MAX_BYTES){
+    alert('That photo is too big — please choose one under 200KB.');
+    e.target.value='';
+    return;
+  }
+  const path=`${S.profile.id}/${Date.now()}_${file.name}`;
+  const {error:ue}=await sb.storage.from('avatars').upload(path,file,{upsert:true});
+  if(ue){alert(ue.message);return;}
+  const {data}=sb.storage.from('avatars').getPublicUrl(path);
+  await sb.from('profiles').update({avatar_url:data.publicUrl}).eq('id',S.profile.id);
+  S.profile.avatar_url=data.publicUrl;
+  $('profile-avatar-preview').src=data.publicUrl;
+  $('user-avatar').src=data.publicUrl;
+}
+
+/* ========== NEW: COMPOSER "+" MENU (attach / poll, near the send button) ========== */
+function toggleComposerPlus(kind){
+  const btn=$(kind+'-plus-btn'), menu=$(kind+'-plus-menu');
+  if(!btn||!menu) return;
+  const willOpen = !menu.classList.contains('open');
+  // close any other open plus-menu first (dm vs channel)
+  document.querySelectorAll('.composer-plus-menu.open').forEach(m=>m.classList.remove('open'));
+  document.querySelectorAll('.composer-plus-btn.open').forEach(b=>b.classList.remove('open'));
+  if(willOpen){ menu.classList.add('open'); btn.classList.add('open'); }
+}
+function closeComposerPlus(kind){
+  const btn=$(kind+'-plus-btn'), menu=$(kind+'-plus-menu');
+  if(menu) menu.classList.remove('open');
+  if(btn) btn.classList.remove('open');
+}
+
+/* ========== NEW: FILE / IMAGE ATTACHMENTS ========== */
+async function handleAttachUpload(e, kind){
+  const file=e.target.files[0]; if(!file) return;
+  const MAX_BYTES = 5*1024*1024; // 5MB cap for chat attachments
+  if(file.size > MAX_BYTES){
+    alert('That file is too big — please choose one under 5MB.');
+    e.target.value='';
+    return;
+  }
+  const path=`${S.profile.id}/${Date.now()}_${file.name}`;
+  const {error:ue}=await sb.storage.from('attachments').upload(path,file,{upsert:true});
+  if(ue){ alert(ue.message); e.target.value=''; return; }
+  const {data}=sb.storage.from('attachments').getPublicUrl(path);
+  const type = file.type.startsWith('image/') ? 'image' : 'file';
+  S.pendingAttachment[kind] = {url:data.publicUrl, type, name:file.name};
+
+  const bar=$(kind+'-attach-preview');
+  bar.style.display='flex';
+  bar.innerHTML = (type==='image'
+      ? `<img class="attach-preview-thumb" src="${esc(data.publicUrl)}">`
+      : `<span style="font-size:18px;">📄</span>`)
+    + `<span style="font-size:12px;color:#0f172a;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(file.name)}</span>`
+    + `<span onclick="cancelAttachment('${kind}')" style="cursor:pointer;color:#94a3b8;padding:0 8px;">✕</span>`;
+  e.target.value='';
+}
+function cancelAttachment(kind){
+  delete S.pendingAttachment[kind];
+  const bar=$(kind+'-attach-preview');
+  if(bar){ bar.style.display='none'; bar.innerHTML=''; }
+}
+function attachmentHTML(m){
+  if(!m.attachment_url) return '';
+  if(m.attachment_type==='image'){
+    return `<img class="msg-attachment-img" src="${esc(m.attachment_url)}" onclick="window.open('${esc(m.attachment_url)}','_blank')">`;
+  }
+  return `<a class="msg-attachment-file" href="${esc(m.attachment_url)}" target="_blank" rel="noopener">📄 ${esc(m.attachment_name||'file')}</a>`;
+}
+
+/* ========== NEW: GLOBAL SEARCH (members + channels, workspace-wide) ========== */
+// Unlike the "messages" tab search (which only searches members to start a
+// DM), this searches BOTH members and every channel in the workspace —
+// including public channels the person hasn't joined yet — so they can find
+// and join them. Private channels show up locked unless already a member.
+async function onGlobalSearch(){
+  const q=$('global-search').value.trim().toLowerCase();
+  const wrap=$('global-search-results');
+  if(!q){ wrap.innerHTML=''; return; }
+
+  const memberHits = S.members.filter(m=>m.id!==S.profile.id && (m.username.toLowerCase().includes(q) || (m.display_name||'').toLowerCase().includes(q)));
+
+  const {data:allChannels} = await sb.from('channels').select('*').eq('workspace_id',S.currentWs.id);
+  const channelHits = (allChannels||[]).filter(c=>c.name.toLowerCase().includes(q));
+
+  let html='';
+  if(memberHits.length){
+    html += `<div class="search-section-label">Members</div>`;
+    html += memberHits.map(m=>`
+      <div class="list-row" onclick="startDmWith('${m.id}')">
+        <div class="list-avatar">${presenceDotHTML(m.id)}<img src="${esc(m.avatar_url||dicebear(m.username))}"></div>
+        <div class="list-meta"><div class="list-name">${esc(m.display_name||m.username)}</div><div class="list-preview">@${esc(m.username)}</div></div>
+      </div>`).join('');
+  }
+  if(channelHits.length){
+    html += `<div class="search-section-label">Channels</div>`;
+    html += channelHits.map(c=>{
+      const joined = S.channels.some(sc=>sc.id===c.id);
+      const locked = !!c.is_private && !joined;
+      return `<div class="list-row ${locked?'locked':''}" ${locked?'':`onclick="joinOrOpenChannel('${c.id}',${!!c.is_private})"`}>
+        <div class="list-avatar" style="color:#a855f7;font-weight:900;font-size:18px;">#</div>
+        <div class="list-meta">
+          <div class="list-name">${esc(c.name)}${c.is_private?'<span class="private-lock">🔒</span>':''}</div>
+          <div class="list-preview">${joined?'already in this channel':locked?'private — ask an admin to add you':'tap to join'}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  wrap.innerHTML = html || '<div class="empty-state">No results found.</div>';
+}
+
+// Anyone can join any public (non-private) channel straight from search.
+// Private channels can only be joined by being added by a channel owner/admin,
+// or automatically for the workspace owner (see openChannelThread).
+async function joinOrOpenChannel(channelId, isPrivate){
+  const already = S.channels.some(c=>c.id===channelId);
+  if(!already){
+    if(isPrivate && S.currentWs.myRole!=='owner'){ alert('This is a private channel — ask an admin to add you.'); return; }
+    const {error} = await sb.from('channel_members').insert({channel_id:channelId, user_id:S.profile.id, added_by:S.profile.id, role:'member'});
+    if(error){ alert(error.message); return; }
+    await loadChannels();
+  }
+  switchView('channels');
+  openChannelThread(channelId);
+}
+
+/* ========== GLOBAL CLOSE ========== */
+window.addEventListener('click',(e)=>{
+  if(!e.target.closest('.ws-switcher')) $('ws-menu').classList.remove('open');
+  if(!e.target.closest('#dm-search')&&!e.target.closest('#search-results')) $('search-results').classList.remove('open');
+  if(!e.target.closest('#channel-input')&&!e.target.closest('#mention-dropdown')) $('mention-dropdown').classList.remove('open');
+  if(!e.target.closest('.composer-plus-wrap')){ closeComposerPlus('dm'); closeComposerPlus('channel'); } // NEW
+});
+
+/* ========== WORKSPACE MEMBERS (owner adds by username) ========== */
+async function openWsMembers(){
+  $('ws-menu').classList.remove('open');
+  $('wsmembers-title').textContent = S.currentWs.name + ' — members';
+  hideErr('wsmembers-error');
+  $('wsmembers-username').value = '';
+  // only show add section to owners
+  $('wsmembers-add-wrap').style.display = S.currentWs.myRole==='owner' ? 'block' : 'none';
+  await renderWsMembersList();
+  $('wsmembers-modal').classList.add('open');
+}
+
+function closeWsMembers(){
+  $('wsmembers-modal').classList.remove('open');
+  hideErr('wsmembers-error');
+  $('wsmembers-username').value = '';
+}
+
+async function renderWsMembersList(){
+  // reload fresh from DB
+  const {data} = await sb.from('workspace_members')
+    .select('role, profiles(id,username,display_name,avatar_url)')
+    .eq('workspace_id', S.currentWs.id);
+  const rows = data || [];
+  const isOwner = S.currentWs.myRole === 'owner';
+
+  $('wsmembers-list').innerHTML = rows.map(r => {
+    const p = r.profiles;
+    const isMe = p.id === S.profile.id;
+    return `<div class="member-chip" style="justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="member-chip-av">${presenceDotHTML(p.id)}<img src="${esc(p.avatar_url||dicebear(p.username))}"></div>
+        <div>
+          <div class="member-chip-name">${esc(p.display_name||p.username)} ${r.role==='owner'?'<span style="font-size:10px;color:#a855f7;font-weight:700;">owner</span>':''}</div>
+          <div style="font-size:11px;color:#94a3b8">@${esc(p.username)}</div>
+        </div>
+      </div>
+      ${isOwner && !isMe && r.role!=='owner'
+        ? `<span onclick="removeWsMember('${p.id}')" style="font-size:11px;color:#ef4444;cursor:pointer;font-weight:700;">remove</span>`
+        : ''}
+    </div>`;
+  }).join('');
+}
+
+async function addWsMember(){
+  hideErr('wsmembers-error');
+  const uname = $('wsmembers-username').value.trim().toLowerCase();
+  if(!uname) return;
+
+  // look up the profile by username
+  const {data:found, error:fe} = await sb.from('profiles').select('*').eq('username', uname).maybeSingle();
+  if(fe||!found){ showErr('wsmembers-error','No user with that username found.'); return; }
+
+  // check already a member
+  const already = S.members.find(m=>m.id===found.id);
+  if(already){ showErr('wsmembers-error','They are already in this workspace.'); return; }
+
+  const {error} = await sb.from('workspace_members').insert({
+    workspace_id: S.currentWs.id, user_id: found.id, role: 'member'
+  });
+  if(error){ showErr('wsmembers-error', error.message); return; }
+
+  $('wsmembers-username').value = '';
+  // refresh local members list too so search works immediately
+  await loadMembers();
+  await renderWsMembersList();
+}
+
+async function removeWsMember(userId){
+  if(!confirm('Remove this member from the workspace?')) return;
+  const {error} = await sb.from('workspace_members')
+    .delete().eq('workspace_id', S.currentWs.id).eq('user_id', userId);
+  if(error){ alert(error.message); return; }
+  await loadMembers();
+  await renderWsMembersList();
+}
+
+/* ========== NEW: MOBILE FLOATING +/× NAV ========== */
+function toggleMobileFab(forceClose){
+  const wrap=$('mobile-fab-wrap'), main=$('mobile-fab-main'), icon=$('mobile-fab-icon');
+  if(!wrap) return;
+  const willOpen = forceClose ? false : !wrap.classList.contains('open');
+  wrap.classList.toggle('open', willOpen);
+  main.classList.toggle('open', willOpen);
+  icon.textContent = willOpen ? '×' : '+';
+}
+function mobileFabNavigate(view){
+  switchView(view);          // reuses the existing nav logic untouched
+  toggleMobileFab(true);     // collapse back to + after picking
+}
+
+/* NEW: hide the +/× button as soon as the person ENTERS a DM thread
+   ("messages"), a channel thread ("channel messages"), or the
+   announcements/"upcomings" view — not only while actively typing.
+   Called from openDmThread/closeDmThread, openChannelThread/closeChannelThread,
+   and switchView so it stays correct as the person navigates around. */
+function updateFabVisibility(){
+  const inDmThread = !!$('dm-thread')?.classList.contains('open');
+  const inChannelThread = !!$('channel-thread')?.classList.contains('open');
+  const inUpcomings = !!$('view-upcomings')?.classList.contains('active');
+  document.body.classList.toggle('typing-mode', inDmThread || inChannelThread || inUpcomings);
+}
+
+/* ========== INIT ========== */
+boot();
+</script>
+</body>
+</html>
